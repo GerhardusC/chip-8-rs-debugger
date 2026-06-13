@@ -1,32 +1,78 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
-use chip_eight::{Draw, Emulator, ReadInputState};
+use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
 use iced::{
-    Color, Renderer, Theme, mouse,
+    Color, Renderer, Subscription, Theme, mouse,
+    time::{self, Duration},
     widget::{Canvas, Column, button, canvas, column, text},
 };
 
-fn main() {
-    iced::run(update, view).unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    iced::application(|| ApplicationState::default(), update, view)
+        .subscription(ApplicationState::subscription)
+        .run()?;
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Increment,
+    NextInstruction,
+    TempLoadProgram,
+    ToggleRunning,
+    Tick,
 }
 
 fn update(value: &mut ApplicationState, message: Message) {
-    value.emulator.0.borrow_mut().next();
     match message {
-        Message::Increment => value.value += 1,
+        Message::NextInstruction => {
+            let emulator_state = value.emulator.0.borrow_mut().next();
+            if let Some(emulator_state) = emulator_state {
+                value.emulator_state = emulator_state;
+            }
+        }
+        Message::TempLoadProgram => {
+            let program = std::fs::read("/home/gerhardus/Downloads/Pong (1 player).ch8");
+            if let Ok(program) = program {
+                let _ = value.emulator.0.borrow_mut().reset(program);
+            }
+        }
+        Message::Tick => {
+            let emulator_state = value.emulator.0.borrow_mut().next();
+            if let Some(emulator_state) = emulator_state {
+                value.emulator_state = emulator_state;
+            }
+        }
+        Message::ToggleRunning => {
+            value.is_running = !value.is_running;
+        }
     }
 }
 
 fn view(value: &'_ ApplicationState) -> Column<'_, Message> {
     let x: Canvas<_, Message> = canvas(ApplicationState::default());
+    let EmulatorState {
+        stack,
+        variable_registers,
+        index_register,
+        program_counter,
+        last_instruction,
+        ..
+    } = &value.emulator_state;
+
+    let stack = format!("STACK:              {:?}", stack);
+    let variable_registers = format!("VARIABLE REGISTERS: {:?}", variable_registers);
+    let index_register = format!("INDEX REGISTER:     {:?}", index_register);
+    let program_counter = format!("PROGRAM_COUNTER:    {:?}", program_counter);
+    let last_instruction = format!("LAST_INSTRUCTION:   {:?}", last_instruction);
     column![
-        text(value.value),
-        button("+").on_press(Message::Increment),
+        text(stack),
+        text(variable_registers),
+        text(index_register),
+        text(program_counter),
+        text(last_instruction),
+        button("Next").on_press(Message::NextInstruction),
+        button("Run/Stop").on_press(Message::ToggleRunning),
+        button("Load Program").on_press(Message::TempLoadProgram),
         x
     ]
 }
@@ -53,8 +99,19 @@ impl Default for EmulatorWrapper {
 
 #[derive(Default)]
 struct ApplicationState {
-    value: u32,
     emulator: EmulatorWrapper,
+    emulator_state: EmulatorState,
+    is_running: bool,
+}
+
+impl ApplicationState {
+    fn subscription(&self) -> Subscription<Message> {
+        if self.is_running {
+            time::every(Duration::from_millis(10)).map(|_| Message::Tick)
+        } else {
+            Subscription::none()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
