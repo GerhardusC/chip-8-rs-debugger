@@ -29,7 +29,7 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
 
         let title = row![
             pin_button,
-            "Pane",
+            "Φ",
             text(pane.id.to_string()).color(PANE_HEADER_TEXT_COLOR),
         ]
         .spacing(5);
@@ -81,7 +81,7 @@ fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<
         InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state).into(),
         InterpreterPaneViewKind::ControllerView => controls(app_state),
         InterpreterPaneViewKind::MetadataView => metadata(app_state).into(),
-        InterpreterPaneViewKind::Keypad => keypad(app_state).into(),
+        InterpreterPaneViewKind::Keypad => keypad(app_state),
     });
 
     let list = pick_list(available_views, selected, move |x| {
