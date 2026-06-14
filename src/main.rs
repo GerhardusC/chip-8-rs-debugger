@@ -2,13 +2,13 @@ use std::{cell::RefCell, error::Error, rc::Rc};
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
 use iced::{
-    Color, Renderer, Subscription, Theme, mouse,
+    Length, Subscription,
     time::{self, Duration},
-    widget::{Canvas, Column, button, canvas, column, text},
+    widget::{Column, Image, button, column, image::Handle, text},
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    iced::application(|| ApplicationState::default(), update, view)
+    iced::application(ApplicationState::default, update, view)
         .subscription(ApplicationState::subscription)
         .run()?;
     Ok(())
@@ -49,15 +49,34 @@ fn update(value: &mut ApplicationState, message: Message) {
 }
 
 fn view(value: &'_ ApplicationState) -> Column<'_, Message> {
-    let x: Canvas<_, Message> = canvas(ApplicationState::default());
     let EmulatorState {
         stack,
         variable_registers,
         index_register,
         program_counter,
         last_instruction,
+        screen_buffer,
+        width,
+        height,
         ..
     } = &value.emulator_state;
+
+    let pixels = screen_buffer
+        .iter()
+        .flat_map(|px| {
+            if *px > 0 {
+                [0xFF, 0xFF, 0xFF, 0xFF]
+            } else {
+                [0x0, 0x0, 0x0, 0xFF]
+            }
+        })
+        .collect::<Vec<u8>>();
+
+    let image_handle =
+        iced::widget::image::Handle::from_rgba(*width as u32, *height as u32, pixels);
+    let image_component: Image<Handle> = iced::widget::image(image_handle)
+        .width(Length::Fixed(512.0))
+        .height(Length::Fixed(256.0));
 
     let stack = format!("STACK:              {:?}", stack);
     let variable_registers = format!("VARIABLE REGISTERS: {:?}", variable_registers);
@@ -73,7 +92,7 @@ fn view(value: &'_ ApplicationState) -> Column<'_, Message> {
         button("Next").on_press(Message::NextInstruction),
         button("Run/Stop").on_press(Message::ToggleRunning),
         button("Load Program").on_press(Message::TempLoadProgram),
-        x
+        image_component,
     ]
 }
 
@@ -82,18 +101,12 @@ struct EmulatorWrapper(Rc<RefCell<Emulator<Drawer, InputReader>>>);
 
 impl Default for EmulatorWrapper {
     fn default() -> Self {
-        Self(Rc::new(RefCell::new(
-            Emulator::init(
-                vec![0, 0, 0],
-                Drawer {
-                    screen_buffer: vec![0; 64 * 32],
-                    width: 64,
-                    height: 32,
-                },
-                InputReader,
-            )
-            .expect("Program not too big"),
-        )))
+        let mut emulator =
+            Emulator::init(vec![0, 0, 0], Drawer, InputReader).expect("Program not too big");
+
+        emulator.set_max_draw_delay(Duration::from_micros(1));
+
+        Self(Rc::new(RefCell::new(emulator)))
     }
 }
 
@@ -107,7 +120,7 @@ struct ApplicationState {
 impl ApplicationState {
     fn subscription(&self) -> Subscription<Message> {
         if self.is_running {
-            time::every(Duration::from_millis(10)).map(|_| Message::Tick)
+            time::every(Duration::from_millis(4)).map(|_| Message::Tick)
         } else {
             Subscription::none()
         }
@@ -115,23 +128,10 @@ impl ApplicationState {
 }
 
 #[derive(Debug, Clone, Default)]
-struct Drawer {
-    screen_buffer: Vec<u8>,
-    width: usize,
-    height: usize,
-}
+struct Drawer;
 
-impl Draw for Drawer {
-    fn draw_buffer(&mut self, screen_buf: &[u8], screen_width: usize, screen_height: usize) {
-        self.screen_buffer = screen_buf.to_vec();
-        self.width = screen_width;
-        self.height = screen_height;
-    }
+impl Draw for Drawer {}
 
-    fn clear_screen(&mut self) {
-        self.screen_buffer.clear();
-    }
-}
 #[derive(Debug, Clone, Default)]
 struct InputReader;
 impl ReadInputState for InputReader {
@@ -139,43 +139,4 @@ impl ReadInputState for InputReader {
         Ok([0; 16])
     }
     fn reset_keys_state(&mut self) {}
-}
-
-impl<Message> canvas::Program<Message> for ApplicationState {
-    type State = Drawer;
-
-    fn draw(
-        &self,
-        state: &Self::State,
-        renderer: &Renderer,
-        _theme: &Theme,
-        bounds: iced::Rectangle,
-        _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry<Renderer>> {
-        let mut frame = canvas::Frame::new(renderer, bounds.size());
-
-        // i = y * screenwidth + x
-        // x = i - ( y * screen_width)
-        // y = (i - x) / screen_width
-        for (i, px) in state.screen_buffer.iter().enumerate() {
-            // We create a `Path` representing a simple circle
-            let x = i % state.width;
-            let point = canvas::Path::rectangle(
-                iced::Point {
-                    x: x as f32,
-                    y: ((i - x) / state.width) as f32,
-                },
-                iced::Size {
-                    width: 1.0,
-                    height: 1.0,
-                },
-            );
-
-            // And fill it with some color
-            frame.fill(&point, if *px > 0 { Color::WHITE } else { Color::BLACK });
-        }
-
-        // Then, we produce the geometry
-        vec![frame.into_geometry()]
-    }
 }
