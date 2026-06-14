@@ -11,7 +11,7 @@ fn keypad_btn(app_state: &'_ ApplicationState, value: u8) -> Button<'_, Message>
         .input_provider
         .keys_state
         .get(value as usize)
-        .map(|x| if *x > 0 { true } else { false })
+        .map(|x| *x > 0)
         .unwrap_or(false);
     let bton: Button<'_, Message> = button(text(btn_text))
         .on_press(Message::KeyToggled(value))

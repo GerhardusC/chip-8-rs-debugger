@@ -4,7 +4,10 @@ use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
 
 mod application_update;
 mod application_view;
-mod keypad;
+mod controls_view;
+mod interpreter_screen_view;
+mod keypad_view;
+mod metadata_view;
 mod subscriptions;
 
 pub use application_update::*;
