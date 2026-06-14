@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
+use iced::widget::pane_grid;
 
 mod application_update;
 mod application_view;
@@ -34,11 +35,27 @@ impl Default for EmulatorWrapper {
     }
 }
 
-#[derive(Default)]
+impl Default for ApplicationState {
+    fn default() -> Self {
+        let (panes, _) = pane_grid::State::new(Pane::new(0));
+        Self {
+            emulator: Default::default(),
+            emulator_state: Default::default(),
+            is_running: Default::default(),
+            panes,
+            panes_created: 1,
+            focus: None,
+        }
+    }
+}
+
 pub struct ApplicationState {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,
     pub is_running: bool,
+    pub panes: pane_grid::State<Pane>,
+    pub panes_created: usize,
+    pub focus: Option<pane_grid::Pane>,
 }
 
 #[derive(Debug, Clone, Default)]
