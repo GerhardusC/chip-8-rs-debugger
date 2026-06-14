@@ -5,6 +5,7 @@ use iced::widget::{button, column, container, pick_list, responsive, row, text};
 use iced::{Center, Color, Element, Fill, Length};
 
 use crate::InterpreterPaneViewKind;
+use crate::file_picker_view::file_picker;
 use crate::{
     ApplicationState, Message, controls_view::controls,
     interpreter_screen_view::interpreter_screen, keypad_view::keypad, metadata_view::metadata,
@@ -73,6 +74,7 @@ fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<
         InterpreterPaneViewKind::ControllerView,
         InterpreterPaneViewKind::MetadataView,
         InterpreterPaneViewKind::Keypad,
+        InterpreterPaneViewKind::ProgramPickerView,
     ];
 
     let selected = app_state.pane_purposes.get(&id);
@@ -82,6 +84,7 @@ fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<
         InterpreterPaneViewKind::ControllerView => controls(app_state),
         InterpreterPaneViewKind::MetadataView => metadata(app_state).into(),
         InterpreterPaneViewKind::Keypad => keypad(app_state),
+        InterpreterPaneViewKind::ProgramPickerView => file_picker(app_state),
     });
 
     let list = pick_list(available_views, selected, move |x| {

@@ -1,4 +1,7 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Duration};
+use std::{
+    cell::RefCell, collections::HashMap, fmt::Display, fs::DirEntry, path::PathBuf, rc::Rc,
+    time::Duration,
+};
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
 use iced::widget::pane_grid::{self, Configuration};
@@ -6,6 +9,7 @@ use iced::widget::pane_grid::{self, Configuration};
 mod application_update;
 mod application_view;
 mod controls_view;
+mod file_picker_view;
 mod interpreter_screen_view;
 mod keypad_view;
 mod metadata_view;
@@ -29,7 +33,7 @@ impl Default for EmulatorWrapper {
         )
         .expect("Program not too big");
 
-        emulator.set_max_draw_delay(Duration::from_micros(1));
+        emulator.set_max_draw_delay(Duration::from_millis(1));
 
         Self(Rc::new(RefCell::new(emulator)))
     }
@@ -44,13 +48,18 @@ impl Default for ApplicationState {
                 axis: pane_grid::Axis::Horizontal,
                 ratio: 0.60,
                 a: Box::new(Configuration::Pane(Pane::new(0))),
-                b: Box::new(Configuration::Pane(Pane::new(1))),
+                b: Box::new(Configuration::Split {
+                    axis: pane_grid::Axis::Vertical,
+                    ratio: 0.75,
+                    a: Box::new(Configuration::Pane(Pane::new(1))),
+                    b: Box::new(Configuration::Pane(Pane::new(2))),
+                }),
             }),
             b: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
                 ratio: 0.5,
-                a: Box::new(Configuration::Pane(Pane::new(2))),
-                b: Box::new(Configuration::Pane(Pane::new(3))),
+                a: Box::new(Configuration::Pane(Pane::new(3))),
+                b: Box::new(Configuration::Pane(Pane::new(4))),
             }),
         };
 
@@ -59,8 +68,13 @@ impl Default for ApplicationState {
         let mut pane_purposes = HashMap::new();
         pane_purposes.insert(0, InterpreterPaneViewKind::ScreenView);
         pane_purposes.insert(1, InterpreterPaneViewKind::MetadataView);
-        pane_purposes.insert(2, InterpreterPaneViewKind::ControllerView);
-        pane_purposes.insert(3, InterpreterPaneViewKind::Keypad);
+        pane_purposes.insert(2, InterpreterPaneViewKind::Keypad);
+        pane_purposes.insert(3, InterpreterPaneViewKind::ControllerView);
+        pane_purposes.insert(4, InterpreterPaneViewKind::ProgramPickerView);
+
+        let here = std::env::current_dir().unwrap_or(PathBuf::from("."));
+        let current_dir =
+            std::fs::read_dir(here).map(|dir| dir.flatten().collect::<Vec<DirEntry>>());
 
         Self {
             emulator: Default::default(),
@@ -70,6 +84,7 @@ impl Default for ApplicationState {
             panes_created: 4,
             focus: None,
             pane_purposes,
+            current_dir: current_dir.unwrap_or(vec![]),
         }
     }
 }
@@ -82,6 +97,7 @@ pub struct ApplicationState {
     pub panes_created: usize,
     pub focus: Option<pane_grid::Pane>,
     pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,
+    pub current_dir: Vec<DirEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -89,6 +105,7 @@ pub enum InterpreterPaneViewKind {
     ScreenView,
     ControllerView,
     MetadataView,
+    ProgramPickerView,
     Keypad,
 }
 
@@ -102,6 +119,7 @@ impl Display for InterpreterPaneViewKind {
                 InterpreterPaneViewKind::ControllerView => "Controller View",
                 InterpreterPaneViewKind::MetadataView => "Metadata View",
                 InterpreterPaneViewKind::Keypad => "Keypad",
+                InterpreterPaneViewKind::ProgramPickerView => "Program Picker",
             }
         )
     }

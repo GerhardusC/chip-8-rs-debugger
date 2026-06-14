@@ -47,7 +47,8 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
             }
         }
         Message::TempLoadProgram => {
-            let program = std::fs::read("/home/gerhardus/Downloads/Pong (1 player).ch8");
+            // TODO: Remove this after implementing file picker
+            let program = std::fs::read("test_roms/rockto.ch8");
             if let Ok(program) = program {
                 let _ = application_state.emulator.0.borrow_mut().reset(program);
             }
