@@ -1,14 +1,15 @@
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
-use iced::{Subscription, time};
 
 mod application_update;
 mod application_view;
 mod keypad;
+mod subscriptions;
 
 pub use application_update::*;
 pub use application_view::*;
+pub use subscriptions::*;
 
 #[derive(Debug, Clone)]
 pub struct EmulatorWrapper(Rc<RefCell<Emulator<Drawer, Keypad>>>);
@@ -35,14 +36,6 @@ pub struct ApplicationState {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,
     pub is_running: bool,
-}
-
-pub fn interpreter_running(value: &ApplicationState) -> Subscription<Message> {
-    if value.is_running {
-        time::every(Duration::from_millis(4)).map(|_| Message::Tick)
-    } else {
-        Subscription::none()
-    }
 }
 
 #[derive(Debug, Clone, Default)]

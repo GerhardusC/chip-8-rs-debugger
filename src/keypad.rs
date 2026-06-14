@@ -1,35 +1,57 @@
-use iced::widget::{Column, button, column, row};
+use iced::widget::{Button, Column, button, column, row, text};
 
 use crate::{ApplicationState, Message};
 
-pub fn keypad(_app_state: &'_ ApplicationState) -> Column<'_, Message> {
+fn keypad_btn(app_state: &'_ ApplicationState, value: u8) -> Button<'_, Message> {
+    let btn_text = format!("{:X}", value);
+    let active = app_state
+        .emulator
+        .0
+        .borrow()
+        .input_provider
+        .keys_state
+        .get(value as usize)
+        .map(|x| if *x > 0 { true } else { false })
+        .unwrap_or(false);
+    let bton: Button<'_, Message> = button(text(btn_text))
+        .on_press(Message::KeyToggled(value))
+        .style(if active {
+            button::secondary
+        } else {
+            button::primary
+        });
+
+    bton
+}
+
+pub fn keypad(app_state: &'_ ApplicationState) -> Column<'_, Message> {
     column![
         row![
-            button("1").on_press(Message::KeyPressed(1)),
-            button("2").on_press(Message::KeyPressed(2)),
-            button("3").on_press(Message::KeyPressed(3)),
-            button("C").on_press(Message::KeyPressed(0xC)),
+            keypad_btn(app_state, 1),
+            keypad_btn(app_state, 2),
+            keypad_btn(app_state, 3),
+            keypad_btn(app_state, 0xC),
         ]
         .spacing(5.0),
         row![
-            button("4").on_press(Message::KeyPressed(4)),
-            button("5").on_press(Message::KeyPressed(5)),
-            button("6").on_press(Message::KeyPressed(6)),
-            button("D").on_press(Message::KeyPressed(0xD)),
+            keypad_btn(app_state, 4),
+            keypad_btn(app_state, 5),
+            keypad_btn(app_state, 6),
+            keypad_btn(app_state, 0xD),
         ]
         .spacing(5.0),
         row![
-            button("7").on_press(Message::KeyPressed(1)),
-            button("8").on_press(Message::KeyPressed(2)),
-            button("9").on_press(Message::KeyPressed(3)),
-            button("E").on_press(Message::KeyPressed(0xC)),
+            keypad_btn(app_state, 7),
+            keypad_btn(app_state, 8),
+            keypad_btn(app_state, 9),
+            keypad_btn(app_state, 0xE),
         ]
         .spacing(5.0),
         row![
-            button("A").on_press(Message::KeyPressed(0xA)),
-            button("0").on_press(Message::KeyPressed(0)),
-            button("B").on_press(Message::KeyPressed(0xB)),
-            button("F").on_press(Message::KeyPressed(0xF)),
+            keypad_btn(app_state, 0xA),
+            keypad_btn(app_state, 0),
+            keypad_btn(app_state, 0xB),
+            keypad_btn(app_state, 0xF),
         ]
         .spacing(5.0),
     ]

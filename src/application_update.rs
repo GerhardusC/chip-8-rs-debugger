@@ -3,7 +3,7 @@ use crate::ApplicationState;
 #[derive(Debug, Clone)]
 pub enum Message {
     NextInstruction,
-    KeyPressed(u8),
+    KeyToggled(u8),
     TempLoadProgram,
     ToggleRunning,
     Tick,
@@ -32,7 +32,7 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
         Message::ToggleRunning => {
             application_state.is_running = !application_state.is_running;
         }
-        Message::KeyPressed(key) => {
+        Message::KeyToggled(key) => {
             if let Some(key) = application_state
                 .emulator
                 .0
@@ -41,7 +41,7 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
                 .keys_state
                 .get_mut(key as usize & 0xF)
             {
-                *key = 1;
+                *key = if *key > 0 { 0 } else { 1 };
             };
         }
     }
