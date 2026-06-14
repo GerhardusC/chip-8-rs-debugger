@@ -3,6 +3,7 @@ use std::error::Error;
 use chip_eight_debugger::{
     ApplicationState, application_update, application_view, interpreter_running,
 };
+use iced::theme;
 
 fn main() -> Result<(), Box<dyn Error>> {
     iced::application(
@@ -10,6 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         application_update,
         application_view,
     )
+    .theme(theme::Theme::TokyoNight)
     .subscription(interpreter_running)
     .window(iced::window::Settings {
         size: iced::Size {

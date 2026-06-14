@@ -1,23 +1,20 @@
 // TODO:
 // use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
-use iced::widget::{button, center_y, column, container, responsive, row, scrollable, text};
-use iced::{Center, Color, Element, Fill, Size};
+use iced::widget::{button, column, container, pick_list, responsive, row, text};
+use iced::{Center, Color, Element, Fill, Length};
 
+use crate::InterpreterPaneViewKind;
 use crate::{
     ApplicationState, Message, controls_view::controls,
     interpreter_screen_view::interpreter_screen, keypad_view::keypad, metadata_view::metadata,
 };
 
-const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
+const PANE_HEADER_TEXT_COLOR: Color = Color::from_rgba(
     0xaa as f32 / 255.0,
     0x00 as f32 / 255.0,
     0x00 as f32 / 255.0,
-);
-const PANE_ID_COLOR_FOCUSED: Color = Color::from_rgb(
-    0xFF as f32 / 255.0,
-    0x47 as f32 / 255.0,
-    0x47 as f32 / 255.0,
+    0x00 as f32 / 255.0,
 );
 
 pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
@@ -33,11 +30,7 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
         let title = row![
             pin_button,
             "Pane",
-            text(pane.id.to_string()).color(if is_focused {
-                PANE_ID_COLOR_FOCUSED
-            } else {
-                PANE_ID_COLOR_UNFOCUSED
-            }),
+            text(pane.id.to_string()).color(PANE_HEADER_TEXT_COLOR),
         ]
         .spacing(5);
 
@@ -52,8 +45,8 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
             } else {
                 style::title_bar_active
             });
-        pane_grid::Content::new(responsive(move |size| {
-            column![interpreter_pane(app_state, size)]
+        pane_grid::Content::new(responsive(move |_| {
+            column![view_interpreter_pane(app_state, pane.id)]
                 .spacing(10.0)
                 .into()
         }))
@@ -74,18 +67,29 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
     container(pane_grid).padding(10).into()
 }
 
-fn interpreter_pane(app_state: &'_ ApplicationState, size: Size) -> Element<'_, Message> {
-    let content = column![
-        text!("{}x{}", size.width, size.height).size(24),
-        metadata(app_state),
-        controls(app_state),
-        interpreter_screen(app_state),
-        keypad(app_state),
-    ]
-    .spacing(10)
-    .align_x(Center);
+fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<'_, Message> {
+    let available_views = [
+        InterpreterPaneViewKind::ScreenView,
+        InterpreterPaneViewKind::ControllerView,
+        InterpreterPaneViewKind::MetadataView,
+        InterpreterPaneViewKind::Keypad,
+    ];
 
-    center_y(scrollable(content)).padding(5).into()
+    let selected = app_state.pane_purposes.get(&id);
+
+    let comp: Option<Element<'_, Message>> = selected.map(|x| match x {
+        InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state).into(),
+        InterpreterPaneViewKind::ControllerView => controls(app_state),
+        InterpreterPaneViewKind::MetadataView => metadata(app_state).into(),
+        InterpreterPaneViewKind::Keypad => keypad(app_state).into(),
+    });
+
+    let list = pick_list(available_views, selected, move |x| {
+        Message::PaneSetActiveView(x, id)
+    });
+    let content = column![list, comp,].spacing(10);
+
+    container(content).padding(5).into()
 }
 
 fn view_partial_panel_controls(
@@ -100,19 +104,22 @@ fn view_partial_panel_controls(
             .on_press(message)
     };
 
-    let pane_controls = row![
-        button("<|>", Message::PaneSplit(pane_grid::Axis::Horizontal, pane),),
-        button("<-->", Message::PaneSplit(pane_grid::Axis::Vertical, pane),),
+    row![
+        button("--", Message::PaneSplit(pane_grid::Axis::Horizontal, pane),)
+            .width(Length::Fixed(50.0)),
+        button("|", Message::PaneSplit(pane_grid::Axis::Vertical, pane),)
+            .width(Length::Fixed(60.0)),
         if app_state.panes.len() > 1 && !is_pinned {
-            Some(button("X", Message::PaneClose(pane)).style(button::danger))
+            Some(
+                button("x", Message::PaneClose(pane))
+                    .style(button::danger)
+                    .width(Length::Fixed(60.0)),
+            )
         } else {
             None
         }
-    ];
-    row![
-        // close,
-        pane_controls,
     ]
+    .spacing(10)
     .into()
 }
 
@@ -148,11 +155,11 @@ fn view_full_panel_controls(
 
     let pane_controls = row![
         button(
-            "Split Horizontally <-->",
+            "Split Horizontally <|>",
             Message::PaneSplit(pane_grid::Axis::Horizontal, pane),
         ),
         button(
-            "Split Vertically <|>",
+            "Split Vertically <-->",
             Message::PaneSplit(pane_grid::Axis::Vertical, pane),
         ),
         if app_state.panes.len() > 1 && !is_pinned {
@@ -173,8 +180,13 @@ mod style {
         let palette = theme.palette();
 
         container::Style {
-            text_color: Some(palette.background),
+            text_color: Some(palette.primary),
             background: Some(palette.background.into()),
+            border: Border {
+                width: 0.5,
+                color: palette.text,
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -184,7 +196,12 @@ mod style {
 
         container::Style {
             text_color: Some(palette.primary),
-            background: Some(palette.primary.into()),
+            background: Some(palette.background.into()),
+            border: Border {
+                width: 1.0,
+                color: palette.text,
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -195,8 +212,8 @@ mod style {
         container::Style {
             background: Some(palette.background.into()),
             border: Border {
-                width: 2.0,
-                color: palette.background,
+                width: 0.5,
+                color: palette.text,
                 ..Border::default()
             },
             ..Default::default()
@@ -209,8 +226,8 @@ mod style {
         container::Style {
             background: Some(palette.background.into()),
             border: Border {
-                width: 2.0,
-                color: palette.primary,
+                width: 1.0,
+                color: palette.text,
                 ..Border::default()
             },
             ..Default::default()

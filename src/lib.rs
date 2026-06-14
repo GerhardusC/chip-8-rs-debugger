@@ -1,7 +1,7 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Duration};
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
-use iced::widget::pane_grid;
+use iced::widget::pane_grid::{self, Configuration};
 
 mod application_update;
 mod application_view;
@@ -37,14 +37,39 @@ impl Default for EmulatorWrapper {
 
 impl Default for ApplicationState {
     fn default() -> Self {
-        let (panes, _) = pane_grid::State::new(Pane::new(0));
+        let config = pane_grid::Configuration::Split {
+            axis: pane_grid::Axis::Vertical,
+            ratio: 0.70,
+            a: Box::new(Configuration::Split {
+                axis: pane_grid::Axis::Horizontal,
+                ratio: 0.60,
+                a: Box::new(Configuration::Pane(Pane::new(0))),
+                b: Box::new(Configuration::Pane(Pane::new(1))),
+            }),
+            b: Box::new(Configuration::Split {
+                axis: pane_grid::Axis::Horizontal,
+                ratio: 0.5,
+                a: Box::new(Configuration::Pane(Pane::new(2))),
+                b: Box::new(Configuration::Pane(Pane::new(3))),
+            }),
+        };
+
+        let panes = pane_grid::State::with_configuration(config);
+
+        let mut pane_purposes = HashMap::new();
+        pane_purposes.insert(0, InterpreterPaneViewKind::ScreenView);
+        pane_purposes.insert(1, InterpreterPaneViewKind::MetadataView);
+        pane_purposes.insert(2, InterpreterPaneViewKind::ControllerView);
+        pane_purposes.insert(3, InterpreterPaneViewKind::Keypad);
+
         Self {
             emulator: Default::default(),
             emulator_state: Default::default(),
             is_running: Default::default(),
             panes,
-            panes_created: 1,
+            panes_created: 4,
             focus: None,
+            pane_purposes,
         }
     }
 }
@@ -56,6 +81,30 @@ pub struct ApplicationState {
     pub panes: pane_grid::State<Pane>,
     pub panes_created: usize,
     pub focus: Option<pane_grid::Pane>,
+    pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum InterpreterPaneViewKind {
+    ScreenView,
+    ControllerView,
+    MetadataView,
+    Keypad,
+}
+
+impl Display for InterpreterPaneViewKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                InterpreterPaneViewKind::ScreenView => "Screen View",
+                InterpreterPaneViewKind::ControllerView => "Controller View",
+                InterpreterPaneViewKind::MetadataView => "Metadata View",
+                InterpreterPaneViewKind::Keypad => "Keypad",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, Default)]

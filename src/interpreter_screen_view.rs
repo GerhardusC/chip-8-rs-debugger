@@ -28,6 +28,6 @@ pub fn interpreter_screen(app_state: &'_ ApplicationState) -> Image<Handle> {
     let image_handle =
         iced::widget::image::Handle::from_rgba(*width as u32, *height as u32, pixels);
     iced::widget::image(image_handle)
-        .width(Length::Fill)
-        .height(Length::Fill)
+        .width(Length::Fixed(800.0))
+        .height(Length::Fixed(400.0))
 }

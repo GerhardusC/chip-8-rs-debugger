@@ -1,9 +1,10 @@
 use iced::widget::pane_grid;
 
-use crate::ApplicationState;
+use crate::{ApplicationState, InterpreterPaneViewKind};
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    PaneSetActiveView(InterpreterPaneViewKind, usize),
     NextInstruction,
     KeyToggled(u8),
     TempLoadProgram,
@@ -139,6 +140,11 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
             {
                 application_state.focus = Some(sibling);
             }
+        }
+        Message::PaneSetActiveView(interpreter_pane_view_kind, k) => {
+            application_state
+                .pane_purposes
+                .insert(k, interpreter_pane_view_kind);
         }
     }
 }

@@ -1,4 +1,7 @@
-use iced::widget::{Button, Column, button, column, row, text};
+use iced::{
+    Length,
+    widget::{Button, Column, button, column, row, text},
+};
 
 use crate::{ApplicationState, Message};
 
@@ -16,10 +19,11 @@ fn keypad_btn(app_state: &'_ ApplicationState, value: u8) -> Button<'_, Message>
     let bton: Button<'_, Message> = button(text(btn_text))
         .on_press(Message::KeyToggled(value))
         .style(if active {
-            button::secondary
+            button::success
         } else {
             button::primary
-        });
+        })
+        .width(Length::Fixed(30.0));
 
     bton
 }
