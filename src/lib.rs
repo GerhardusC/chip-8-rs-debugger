@@ -19,6 +19,14 @@ pub use application_update::*;
 pub use application_view::*;
 pub use subscriptions::*;
 
+pub const AVAILABLE_VIEWS: [InterpreterPaneViewKind; 5] = [
+    InterpreterPaneViewKind::ScreenView,
+    InterpreterPaneViewKind::MetadataView,
+    InterpreterPaneViewKind::Keypad,
+    InterpreterPaneViewKind::ControllerView,
+    InterpreterPaneViewKind::ProgramPickerView,
+];
+
 #[derive(Debug, Clone)]
 pub struct EmulatorWrapper(Rc<RefCell<Emulator<Drawer, Keypad>>>);
 
@@ -65,12 +73,12 @@ impl Default for ApplicationState {
 
         let panes = pane_grid::State::with_configuration(config);
 
+        let num_available_views = AVAILABLE_VIEWS.len();
         let mut pane_purposes = HashMap::new();
-        pane_purposes.insert(0, InterpreterPaneViewKind::ScreenView);
-        pane_purposes.insert(1, InterpreterPaneViewKind::MetadataView);
-        pane_purposes.insert(2, InterpreterPaneViewKind::Keypad);
-        pane_purposes.insert(3, InterpreterPaneViewKind::ControllerView);
-        pane_purposes.insert(4, InterpreterPaneViewKind::ProgramPickerView);
+
+        for (id, view_kind) in AVAILABLE_VIEWS.into_iter().enumerate() {
+            pane_purposes.insert(id, view_kind);
+        }
 
         let here = std::env::current_dir().unwrap_or(PathBuf::from("."));
         let current_dir =
@@ -81,7 +89,7 @@ impl Default for ApplicationState {
             emulator_state: Default::default(),
             is_running: Default::default(),
             panes,
-            panes_created: 4,
+            panes_created: num_available_views,
             focus: None,
             pane_purposes,
             current_dir: current_dir.unwrap_or(vec![]),

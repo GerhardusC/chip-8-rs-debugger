@@ -4,8 +4,8 @@ use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{button, column, container, pick_list, responsive, row, text};
 use iced::{Center, Color, Element, Fill, Length};
 
-use crate::InterpreterPaneViewKind;
 use crate::file_picker_view::file_picker;
+use crate::{AVAILABLE_VIEWS, InterpreterPaneViewKind};
 use crate::{
     ApplicationState, Message, controls_view::controls,
     interpreter_screen_view::interpreter_screen, keypad_view::keypad, metadata_view::metadata,
@@ -69,14 +69,6 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
 }
 
 fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<'_, Message> {
-    let available_views = [
-        InterpreterPaneViewKind::ScreenView,
-        InterpreterPaneViewKind::ControllerView,
-        InterpreterPaneViewKind::MetadataView,
-        InterpreterPaneViewKind::Keypad,
-        InterpreterPaneViewKind::ProgramPickerView,
-    ];
-
     let selected = app_state.pane_purposes.get(&id);
 
     let comp: Option<Element<'_, Message>> = selected.map(|x| match x {
@@ -87,7 +79,7 @@ fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<
         InterpreterPaneViewKind::ProgramPickerView => file_picker(app_state),
     });
 
-    let list = pick_list(available_views, selected, move |x| {
+    let list = pick_list(AVAILABLE_VIEWS, selected, move |x| {
         Message::PaneSetActiveView(x, id)
     });
     let content = column![list, comp,].spacing(10);
