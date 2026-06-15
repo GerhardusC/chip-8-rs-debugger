@@ -1,5 +1,5 @@
 use iced::widget::pane_grid::{self, PaneGrid};
-use iced::widget::{button, column, container, responsive, row, text};
+use iced::widget::{button, container, responsive, row, text};
 use iced::{Center, Color, Element, Fill, Length};
 
 use crate::interpreter_pane_view::interpreter_pane;
@@ -43,17 +43,13 @@ pub fn main_pane(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             } else {
                 style::title_bar_active
             });
-        pane_grid::Content::new(responsive(move |_| {
-            column![interpreter_pane(app_state, pane.id)]
-                .spacing(5.0)
-                .into()
-        }))
-        .title_bar(title_bar)
-        .style(if is_focused {
-            style::pane_focused
-        } else {
-            style::pane_active
-        })
+        pane_grid::Content::new(responsive(move |_| interpreter_pane(app_state, pane.id)))
+            .title_bar(title_bar)
+            .style(if is_focused {
+                style::pane_focused
+            } else {
+                style::pane_active
+            })
     })
     .width(Fill)
     .height(Fill)
