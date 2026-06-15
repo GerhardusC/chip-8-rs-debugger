@@ -38,9 +38,9 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
         let title_bar = pane_grid::TitleBar::new(title)
             .controls(pane_grid::Controls::dynamic(
                 view_full_panel_controls(app_state, id, pane.is_pinned, is_maximized),
-                view_partial_panel_controls(app_state, id, pane.is_pinned),
+                view_partial_panel_controls(app_state, id, pane.is_pinned, is_maximized),
             ))
-            .padding(10)
+            .padding(5)
             .style(if is_focused {
                 style::title_bar_focused
             } else {
@@ -48,7 +48,7 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
             });
         pane_grid::Content::new(responsive(move |_| {
             column![view_interpreter_pane(app_state, pane.id)]
-                .spacing(10.0)
+                .spacing(5.0)
                 .into()
         }))
         .title_bar(title_bar)
@@ -60,10 +60,10 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
     })
     .width(Fill)
     .height(Fill)
-    .spacing(10)
+    .spacing(5)
     .on_click(Message::PaneClicked)
     .on_drag(Message::PaneDragged)
-    .on_resize(10, Message::PaneResized);
+    .on_resize(5, Message::PaneResized);
 
     container(pane_grid).padding(10).into()
 }
@@ -91,6 +91,7 @@ fn view_partial_panel_controls(
     app_state: &'_ ApplicationState,
     pane: pane_grid::Pane,
     is_pinned: bool,
+    is_maximized: bool,
 ) -> Element<'_, Message> {
     let button = |label, message| {
         button(text(label).width(Fill).align_x(Center).size(16))
@@ -99,20 +100,38 @@ fn view_partial_panel_controls(
             .on_press(message)
     };
 
+    let maximize = if app_state.panes.len() > 1 {
+        let (content, message) = if is_maximized {
+            ("🗕", Message::PaneRestore)
+        } else {
+            ("🗖", Message::PaneMaximize(pane))
+        };
+
+        Some(
+            button(content, message)
+                .style(button::secondary)
+                .width(Length::Fixed(40.0)),
+        )
+    } else {
+        None
+    };
+    let pin_button = if app_state.panes.len() > 1 && !is_pinned {
+        Some(
+            button("x", Message::PaneClose(pane))
+                .style(button::danger)
+                .width(Length::Fixed(40.0)),
+        )
+    } else {
+        None
+    };
+
     row![
         button("--", Message::PaneSplit(pane_grid::Axis::Horizontal, pane),)
-            .width(Length::Fixed(50.0)),
+            .width(Length::Fixed(40.0)),
         button("|", Message::PaneSplit(pane_grid::Axis::Vertical, pane),)
-            .width(Length::Fixed(60.0)),
-        if app_state.panes.len() > 1 && !is_pinned {
-            Some(
-                button("x", Message::PaneClose(pane))
-                    .style(button::danger)
-                    .width(Length::Fixed(60.0)),
-            )
-        } else {
-            None
-        }
+            .width(Length::Fixed(40.0)),
+        maximize,
+        pin_button,
     ]
     .spacing(10)
     .into()
