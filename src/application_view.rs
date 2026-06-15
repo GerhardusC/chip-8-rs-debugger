@@ -36,10 +36,12 @@ pub fn application_view(app_state: &'_ ApplicationState) -> Element<'_, Message>
         .spacing(5);
 
         let title_bar = pane_grid::TitleBar::new(title)
-            .controls(pane_grid::Controls::dynamic(
-                view_full_panel_controls(app_state, id, pane.is_pinned, is_maximized),
-                view_partial_panel_controls(app_state, id, pane.is_pinned, is_maximized),
-            ))
+            .controls(pane_grid::Controls::new(view_panel_controls(
+                app_state,
+                id,
+                pane.is_pinned,
+                is_maximized,
+            )))
             .padding(5)
             .style(if is_focused {
                 style::title_bar_focused
@@ -87,7 +89,7 @@ fn view_interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<
     container(content).padding(5).into()
 }
 
-fn view_partial_panel_controls(
+fn view_panel_controls(
     app_state: &'_ ApplicationState,
     pane: pane_grid::Pane,
     is_pinned: bool,
@@ -135,55 +137,6 @@ fn view_partial_panel_controls(
     ]
     .spacing(10)
     .into()
-}
-
-fn view_full_panel_controls(
-    app_state: &'_ ApplicationState,
-    pane: pane_grid::Pane,
-    is_pinned: bool,
-    is_maximized: bool,
-) -> Element<'_, Message> {
-    let maximize = if app_state.panes.len() > 1 {
-        let (content, message) = if is_maximized {
-            ("Restore", Message::PaneRestore)
-        } else {
-            ("Maximize", Message::PaneMaximize(pane))
-        };
-
-        Some(
-            button(text(content).size(14))
-                .style(button::secondary)
-                .padding(3)
-                .on_press(message),
-        )
-    } else {
-        None
-    };
-
-    let button = |label, message| {
-        button(text(label).width(Fill).align_x(Center).size(16))
-            .width(Fill)
-            .padding(8)
-            .on_press(message)
-    };
-
-    let pane_controls = row![
-        button(
-            "Split Horizontally <|>",
-            Message::PaneSplit(pane_grid::Axis::Horizontal, pane),
-        ),
-        button(
-            "Split Vertically <-->",
-            Message::PaneSplit(pane_grid::Axis::Vertical, pane),
-        ),
-        if app_state.panes.len() > 1 && !is_pinned {
-            Some(button("Close", Message::PaneClose(pane)).style(button::danger))
-        } else {
-            None
-        }
-    ];
-
-    row![maximize, pane_controls].spacing(5).into()
 }
 
 mod style {
