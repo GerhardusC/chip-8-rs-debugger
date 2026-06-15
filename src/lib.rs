@@ -10,9 +10,12 @@ mod application_update;
 mod application_view;
 mod controls_view;
 mod file_picker_view;
+mod interpreter_pane_view;
 mod interpreter_screen_view;
 mod keypad_view;
+mod main_pane_view;
 mod metadata_view;
+mod style;
 mod subscriptions;
 
 pub use application_update::*;
