@@ -1,6 +1,5 @@
 use std::{
-    cell::RefCell, collections::HashMap, fmt::Display, fs::DirEntry, path::PathBuf, rc::Rc,
-    time::Duration,
+    cell::RefCell, collections::HashMap, fmt::Display, path::PathBuf, rc::Rc, time::Duration,
 };
 
 use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
@@ -84,8 +83,10 @@ impl Default for ApplicationState {
         }
 
         let here = std::env::current_dir().unwrap_or(PathBuf::from("."));
-        let current_dir =
-            std::fs::read_dir(here).map(|dir| dir.flatten().collect::<Vec<DirEntry>>());
+        let current_dir = std::fs::read_dir(&here).map(|dir| {
+            dir.flat_map(|entry| entry.map(|entry| entry.path()))
+                .collect::<Vec<PathBuf>>()
+        });
 
         Self {
             emulator: Default::default(),
@@ -96,6 +97,7 @@ impl Default for ApplicationState {
             focus: None,
             pane_purposes,
             current_dir: current_dir.unwrap_or(vec![]),
+            parent_dir: here.parent().map(|p| p.to_path_buf()),
         }
     }
 }
@@ -108,7 +110,8 @@ pub struct ApplicationState {
     pub panes_created: usize,
     pub focus: Option<pane_grid::Pane>,
     pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,
-    pub current_dir: Vec<DirEntry>,
+    pub current_dir: Vec<PathBuf>,
+    pub parent_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

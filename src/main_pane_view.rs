@@ -25,7 +25,6 @@ pub fn main_pane(app_state: &'_ ApplicationState) -> Element<'_, Message> {
 
         let title = row![
             pin_button,
-            "Φ",
             text(pane.id.to_string()).color(PANE_HEADER_TEXT_COLOR),
         ]
         .spacing(5);

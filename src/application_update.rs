@@ -1,15 +1,29 @@
-use iced::widget::pane_grid;
+use std::path::PathBuf;
+
+use iced::{Task, widget::pane_grid};
 
 use crate::{ApplicationState, InterpreterPaneViewKind};
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    // COMBINED CONTROLS
     PaneSetActiveView(InterpreterPaneViewKind, usize),
+
+    // FILE CONTROLS
+    LoadProgram(PathBuf),
+    EnterDirectory(PathBuf),
+    UpdateProgram(Vec<u8>),
+    FsError,
+    UpdateDirectoryListing(Vec<PathBuf>),
+
+    // EMULATOR CONTROLS
     NextInstruction,
     KeyToggled(u8),
     TempLoadProgram,
     ToggleRunning,
     Tick,
+
+    // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
     PaneSplitFocused(pane_grid::Axis),
     PaneFocusAdjacent(pane_grid::Direction),
@@ -38,7 +52,10 @@ impl Pane {
     }
 }
 
-pub fn application_update(application_state: &mut ApplicationState, message: Message) {
+pub fn application_update(
+    application_state: &mut ApplicationState,
+    message: Message,
+) -> Task<Message> {
     match message {
         Message::NextInstruction => {
             let emulator_state = application_state.emulator.0.borrow_mut().next();
@@ -73,6 +90,48 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
             {
                 *key = if *key > 0 { 0 } else { 1 };
             };
+        }
+        Message::LoadProgram(path_buf) => {
+            return Task::perform(async { std::fs::read(path_buf) }, |x| {
+                if let Ok(x) = x {
+                    Message::UpdateProgram(x)
+                } else {
+                    Message::FsError
+                }
+            });
+        }
+        Message::UpdateProgram(program) => {
+            if let Err(e) = application_state.emulator.0.borrow_mut().reset(program) {
+                eprintln!("Program too large: {e}");
+            };
+        }
+        Message::EnterDirectory(path_buf) => {
+            application_state.parent_dir = path_buf.parent().map(|x| x.to_path_buf());
+
+            return Task::perform(
+                async {
+                    std::fs::read_dir(path_buf).map(|dir| {
+                        dir.flat_map(|entry| {
+                            if let Ok(entry) = entry {
+                                Some(entry.path())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<PathBuf>>()
+                    })
+                },
+                |x| {
+                    if let Ok(x) = x {
+                        Message::UpdateDirectoryListing(x)
+                    } else {
+                        Message::FsError
+                    }
+                },
+            );
+        }
+        Message::UpdateDirectoryListing(current_dir) => {
+            application_state.current_dir = current_dir;
         }
         Message::PaneSplit(axis, pane) => {
             let result = application_state.panes.split(
@@ -147,5 +206,9 @@ pub fn application_update(application_state: &mut ApplicationState, message: Mes
                 .pane_purposes
                 .insert(k, interpreter_pane_view_kind);
         }
+        Message::FsError => {
+            eprintln!("Failed to read file/directory");
+        }
     }
+    Task::none()
 }
