@@ -1,8 +1,15 @@
 use std::path::PathBuf;
 
-use iced::{Task, widget::pane_grid};
+use chip_eight::Instruction;
+use iced::{
+    Task,
+    widget::{
+        operation::{RelativeOffset, snap_to},
+        pane_grid,
+    },
+};
 
-use crate::{ApplicationState, InterpreterPaneViewKind};
+use crate::{ApplicationState, InterpreterPaneViewKind, PC_START};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -21,7 +28,6 @@ pub enum Message {
     KeyToggled(u8),
     TempLoadProgram,
     ToggleRunning,
-    Tick,
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -62,18 +68,31 @@ pub fn application_update(
             if let Some(emulator_state) = emulator_state {
                 application_state.emulator_state = emulator_state;
             }
+            let pc = application_state.emulator_state.program_counter;
+            let program_len = application_state.current_program.len();
+            if pc < PC_START || program_len == 0 {
+                return Task::none();
+            }
+
+            // Lol
+            let normalised_pc = (application_state.emulator_state.program_counter - PC_START) / 2;
+            // TODO: Stick this hard coded 10 into a slider
+            let position = (normalised_pc + 10) as f32 / program_len as f32;
+            if application_state.emulator_state.program_counter >= PC_START {
+                return snap_to(
+                    "program_list",
+                    RelativeOffset {
+                        x: 0.0,
+                        y: position,
+                    },
+                );
+            }
         }
         Message::TempLoadProgram => {
             // TODO: Remove this after implementing file picker
             let program = std::fs::read("test_roms/rockto.ch8");
             if let Ok(program) = program {
                 let _ = application_state.emulator.0.borrow_mut().reset(program);
-            }
-        }
-        Message::Tick => {
-            let emulator_state = application_state.emulator.0.borrow_mut().next();
-            if let Some(emulator_state) = emulator_state {
-                application_state.emulator_state = emulator_state;
             }
         }
         Message::ToggleRunning => {
@@ -101,6 +120,16 @@ pub fn application_update(
             });
         }
         Message::UpdateProgram(program) => {
+            application_state.current_program = program
+                .chunks(2)
+                .map(|c| {
+                    if let (Some(a), Some(b)) = (c.first(), c.get(1)) {
+                        ((*a as u16) << 8 | *b as u16).into()
+                    } else {
+                        Instruction::Unimplemented(0)
+                    }
+                })
+                .collect();
             if let Err(e) = application_state.emulator.0.borrow_mut().reset(program) {
                 eprintln!("Program too large: {e}");
             };

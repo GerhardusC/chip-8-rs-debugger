@@ -565,9 +565,9 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chip-eight"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d40ed6b0c971fdb7668c6a33b32d045682776d4130038247f6c41f7cc9a6d5af"
+checksum = "598e8d517de2b709bdddaa5f1000242e52a3902056afce139b1a5353728b3410"
 
 [[package]]
 name = "chip-eight-debugger"

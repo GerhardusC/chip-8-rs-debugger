@@ -2,7 +2,7 @@ use std::{
     cell::RefCell, collections::HashMap, fmt::Display, path::PathBuf, rc::Rc, time::Duration,
 };
 
-use chip_eight::{Draw, Emulator, EmulatorState, ReadInputState};
+use chip_eight::{Draw, Emulator, EmulatorState, Instruction, ReadInputState};
 use iced::widget::pane_grid::{self, Configuration};
 
 mod application_update;
@@ -21,6 +21,7 @@ pub use application_update::*;
 pub use application_view::*;
 pub use subscriptions::*;
 
+pub const PC_START: usize = 0x200;
 pub const AVAILABLE_VIEWS: [InterpreterPaneViewKind; 5] = [
     InterpreterPaneViewKind::ScreenView,
     InterpreterPaneViewKind::MetadataView,
@@ -35,7 +36,7 @@ pub struct EmulatorWrapper(Rc<RefCell<Emulator<Drawer, Keypad>>>);
 impl Default for EmulatorWrapper {
     fn default() -> Self {
         let mut emulator = Emulator::init(
-            vec![0, 0, 0],
+            vec![],
             Drawer,
             Keypad {
                 keys_state: [0; 16],
@@ -43,7 +44,7 @@ impl Default for EmulatorWrapper {
         )
         .expect("Program not too big");
 
-        emulator.set_max_draw_delay(Duration::from_millis(1));
+        emulator.set_max_draw_delay(Duration::from_micros(1));
 
         Self(Rc::new(RefCell::new(emulator)))
     }
@@ -53,7 +54,7 @@ impl Default for ApplicationState {
     fn default() -> Self {
         let config = pane_grid::Configuration::Split {
             axis: pane_grid::Axis::Vertical,
-            ratio: 0.70,
+            ratio: 0.60,
             a: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
                 ratio: 0.60,
@@ -67,7 +68,7 @@ impl Default for ApplicationState {
             }),
             b: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
-                ratio: 0.5,
+                ratio: 0.70,
                 a: Box::new(Configuration::Pane(Pane::new(3))),
                 b: Box::new(Configuration::Pane(Pane::new(4))),
             }),
@@ -82,6 +83,7 @@ impl Default for ApplicationState {
             pane_purposes.insert(id, view_kind);
         }
 
+        // TODO: Make game dir configurable.
         let here = std::env::current_dir().unwrap_or(PathBuf::from("."));
         let current_dir = std::fs::read_dir(&here).map(|dir| {
             dir.flat_map(|entry| entry.map(|entry| entry.path()))
@@ -90,7 +92,10 @@ impl Default for ApplicationState {
 
         Self {
             emulator: Default::default(),
-            emulator_state: Default::default(),
+            emulator_state: EmulatorState {
+                program_counter: PC_START,
+                ..Default::default()
+            },
             is_running: Default::default(),
             panes,
             panes_created: num_available_views,
@@ -98,6 +103,7 @@ impl Default for ApplicationState {
             pane_purposes,
             current_dir: current_dir.unwrap_or(vec![]),
             parent_dir: here.parent().map(|p| p.to_path_buf()),
+            current_program: vec![],
         }
     }
 }
@@ -112,6 +118,7 @@ pub struct ApplicationState {
     pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,
     pub current_dir: Vec<PathBuf>,
     pub parent_dir: Option<PathBuf>,
+    pub current_program: Vec<Instruction>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
