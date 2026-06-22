@@ -26,7 +26,6 @@ pub enum Message {
     // EMULATOR CONTROLS
     NextInstruction,
     KeyToggled(u8),
-    TempLoadProgram,
     ToggleRunning,
 
     // PANE CONTROLS
@@ -86,13 +85,6 @@ pub fn application_update(
                         y: position,
                     },
                 );
-            }
-        }
-        Message::TempLoadProgram => {
-            // TODO: Remove this after implementing file picker
-            let program = std::fs::read("test_roms/rockto.ch8");
-            if let Ok(program) = program {
-                let _ = application_state.emulator.0.borrow_mut().reset(program);
             }
         }
         Message::ToggleRunning => {

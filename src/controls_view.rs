@@ -23,14 +23,29 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
 
     // TODO: Move to Id::unique()
     // TODO: Add toggle for auto scroll
-    // TODO: Offset scrollbar
     let program_list = scrollable(instructions_list).id(widget::Id::new("program_list"));
+
+    let no_prog_warning = if app_state.current_program.is_empty() {
+        Some(text("No program loaded").style(text::secondary))
+    } else {
+        None
+    };
+
+    let run_button = if app_state.is_running {
+        button("⏸")
+            .on_press(Message::ToggleRunning)
+            .style(button::danger)
+    } else {
+        button("▶")
+            .on_press(Message::ToggleRunning)
+            .style(button::success)
+    };
+
     column![
         row![
-            // TODO: Style differently if program running
             button("Next").on_press(Message::NextInstruction),
-            button("Run/Stop").on_press(Message::ToggleRunning),
-            button("Load Program").on_press(Message::TempLoadProgram),
+            run_button,
+            no_prog_warning
         ]
         .spacing(5.0),
         program_list
