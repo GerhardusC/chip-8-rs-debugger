@@ -12,8 +12,10 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             // offset.
             let text = text(format!("{}: {:?}", (i * 2) + PC_START, instruction))
                 .wrapping(text::Wrapping::None);
-            let pc = app_state.emulator_state.program_counter;
-            if pc >= PC_START && (pc - PC_START) / 2 == i {
+
+            if let Some(pc) = app_state.get_normalised_pc()
+                && pc == i
+            {
                 text.style(text::primary).into()
             } else {
                 text.style(text::secondary).into()

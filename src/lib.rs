@@ -108,6 +108,18 @@ impl Default for ApplicationState {
     }
 }
 
+impl ApplicationState {
+    /// Convert program counter value to index in current program.
+    /// Returns none if PC in emulator is out of range
+    pub fn get_normalised_pc(&self) -> Option<usize> {
+        if self.emulator_state.program_counter < PC_START || self.current_program.is_empty() {
+            return None;
+        }
+        let normalised_pc = (self.emulator_state.program_counter - PC_START) >> 1;
+        Some(normalised_pc)
+    }
+}
+
 pub struct ApplicationState {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,

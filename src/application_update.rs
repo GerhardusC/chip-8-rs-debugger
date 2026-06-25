@@ -67,16 +67,12 @@ pub fn application_update(
             if let Some(emulator_state) = emulator_state {
                 application_state.emulator_state = emulator_state;
             }
-            let pc = application_state.emulator_state.program_counter;
-            let program_len = application_state.current_program.len();
-            if pc < PC_START || program_len == 0 {
-                return Task::none();
-            }
 
-            // Lol
-            let normalised_pc = (application_state.emulator_state.program_counter - PC_START) / 2;
+            let normalised_pc = application_state.get_normalised_pc().unwrap_or(0);
+
             // TODO: Stick this hard coded 10 into a slider
-            let position = (normalised_pc + 10) as f32 / program_len as f32;
+            let position =
+                (normalised_pc as f32 + 0.5) / application_state.current_program.len() as f32;
             if application_state.emulator_state.program_counter >= PC_START {
                 return snap_to(
                     "program_list",
@@ -154,6 +150,9 @@ pub fn application_update(
         Message::UpdateDirectoryListing(current_dir) => {
             application_state.current_dir = current_dir;
         }
+        Message::FsError => {
+            eprintln!("Failed to read file/directory");
+        }
         Message::PaneSplit(axis, pane) => {
             let result = application_state.panes.split(
                 axis,
@@ -226,9 +225,6 @@ pub fn application_update(
             application_state
                 .pane_purposes
                 .insert(k, interpreter_pane_view_kind);
-        }
-        Message::FsError => {
-            eprintln!("Failed to read file/directory");
         }
     }
     Task::none()
