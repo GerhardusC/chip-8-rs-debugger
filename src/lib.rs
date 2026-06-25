@@ -111,6 +111,7 @@ impl Default for ApplicationState {
             parent_dir: here.parent().map(|p| p.to_path_buf()),
             current_program: vec![],
             auto_scroll_pc: true,
+            metadata: Default::default(),
         }
     }
 }
@@ -138,8 +139,8 @@ impl ApplicationState {
         if !self.auto_scroll_pc {
             return Task::none();
         };
-        // Avoiding divide by zero
-        if self.current_program.len() == SCROLL_OFFSET {
+        // Avoiding divide by zero or subtracting with overflow
+        if self.current_program.len() <= SCROLL_OFFSET {
             return Task::none();
         }
         let normalised_pc = self.get_normalised_pc().unwrap_or(0);
@@ -170,6 +171,13 @@ pub struct ApplicationState {
     pub parent_dir: Option<PathBuf>,
     pub current_program: Vec<Instruction>,
     pub auto_scroll_pc: bool,
+    pub metadata: MetaData,
+}
+
+#[derive(Default)]
+pub struct MetaData {
+    pub register_x: Option<usize>,
+    pub register_y: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

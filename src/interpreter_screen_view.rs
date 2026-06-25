@@ -6,6 +6,7 @@ use iced::{
 
 use crate::ApplicationState;
 
+// TODO: See if it helps perf migrating to canvas
 pub fn interpreter_screen(app_state: &'_ ApplicationState) -> Image<Handle> {
     let EmulatorState {
         screen_buffer,
