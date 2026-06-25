@@ -1,10 +1,10 @@
 use chip_eight::EmulatorState;
 use iced::{
     Element,
-    widget::{Column, Row, column, container, text},
+    widget::{Column, Row, column, container, row, text},
 };
 
-use crate::{ApplicationState, Message};
+use crate::{ApplicationState, Message, MetaData};
 
 pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
     let EmulatorState {
@@ -48,15 +48,42 @@ fn stack_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
 
 fn variable_registers_view(app_state: &'_ ApplicationState) -> Column<'_, Message> {
     let heading = container(text("Variable registers:").style(text::secondary)).padding(5);
+    let key = row![
+        text("vX").style(text::primary),
+        text(" | "),
+        text("vY").style(text::success),
+    ]
+    .spacing(5);
+
+    let header = row![heading, key,].spacing(5);
+
+    let MetaData {
+        register_x: x,
+        register_y: y,
+        ..
+    } = app_state.metadata;
 
     column![
-        heading,
-        Row::from_iter(app_state.emulator_state.variable_registers.iter().map(|x| {
-            container(text(x.to_string()))
-                .style(container::bordered_box)
-                .padding(10)
-                .into()
-        }))
+        header,
+        Row::from_iter(
+            app_state
+                .emulator_state
+                .variable_registers
+                .iter()
+                .enumerate()
+                .map(|(i, v)| {
+                    container(text(v.to_string()))
+                        .style(if x == Some(i) {
+                            container::primary
+                        } else if y == Some(i) {
+                            container::success
+                        } else {
+                            container::bordered_box
+                        })
+                        .padding(10)
+                        .into()
+                })
+        )
         .spacing(5)
     ]
 }

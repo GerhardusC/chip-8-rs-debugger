@@ -64,6 +64,42 @@ pub fn application_update(
             if let Some(emulator_state) = emulator_state {
                 application_state.emulator_state = emulator_state;
             }
+            let (x, y) = if let Some(instruction) = application_state.get_instruction_under_pc() {
+                match instruction {
+                    Instruction::AddToRegister { register: x, .. }
+                    | Instruction::JumpWithOffset { register_x: x, .. }
+                    | Instruction::Random { register_x: x, .. }
+                    | Instruction::SetGeneralRegister { register: x, .. }
+                    | Instruction::SkipEqValueWithRegisterContents { register: x, .. }
+                    | Instruction::SkipIfKey { register: x, .. }
+                    | Instruction::SkipNotEqValueWithRegisterContents { register: x, .. }
+                    | Instruction::SubCommand { register: x, .. } => (Some(x), None),
+                    Instruction::Draw {
+                        x_register: x,
+                        y_register: y,
+                        ..
+                    }
+                    | Instruction::SkipEqRegisters {
+                        register_x: x,
+                        register_y: y,
+                    }
+                    | Instruction::SkipNotEqRegisters {
+                        register_x: x,
+                        register_y: y,
+                    }
+                    | Instruction::LogicalOperator {
+                        register_x: x,
+                        register_y: y,
+                        ..
+                    } => (Some(x), Some(y)),
+                    _ => (None, None),
+                }
+            } else {
+                (None, None)
+            };
+            application_state.metadata.register_x = x;
+            application_state.metadata.register_y = y;
+
             return application_state.scroll_to_pc();
         }
         Message::ToggleAutoScrollPc => {
