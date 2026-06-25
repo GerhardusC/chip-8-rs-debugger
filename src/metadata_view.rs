@@ -1,6 +1,7 @@
 use chip_eight::EmulatorState;
 use iced::{
-    Element, widget::{Column, Row, column, container, text},
+    Element,
+    widget::{Column, Row, column, container, text},
 };
 
 use crate::{ApplicationState, Message};
