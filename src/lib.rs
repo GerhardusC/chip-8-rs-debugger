@@ -3,7 +3,13 @@ use std::{
 };
 
 use chip_eight::{Draw, Emulator, EmulatorState, Instruction, ReadInputState};
-use iced::widget::pane_grid::{self, Configuration};
+use iced::{
+    Task,
+    widget::{
+        operation::{RelativeOffset, snap_to},
+        pane_grid::{self, Configuration},
+    },
+};
 
 mod application_update;
 mod application_view;
@@ -104,9 +110,12 @@ impl Default for ApplicationState {
             current_dir: current_dir.unwrap_or(vec![]),
             parent_dir: here.parent().map(|p| p.to_path_buf()),
             current_program: vec![],
+            auto_scroll_pc: true,
         }
     }
 }
+
+const SCROLL_OFFSET: usize = 10;
 
 impl ApplicationState {
     /// Convert program counter value to index in current program.
@@ -117,6 +126,35 @@ impl ApplicationState {
         }
         let normalised_pc = (self.emulator_state.program_counter - PC_START) >> 1;
         Some(normalised_pc)
+    }
+
+    pub fn get_instruction_under_pc(&self) -> Option<Instruction> {
+        self.get_normalised_pc()
+            .and_then(|x| self.current_program.get(x))
+            .map(|x| x.to_owned())
+    }
+
+    pub fn scroll_to_pc(&mut self) -> Task<Message> {
+        if !self.auto_scroll_pc {
+            return Task::none();
+        };
+        // Avoiding divide by zero
+        if self.current_program.len() == SCROLL_OFFSET {
+            return Task::none();
+        }
+        let normalised_pc = self.get_normalised_pc().unwrap_or(0);
+        let position = normalised_pc as f32 / (self.current_program.len() - SCROLL_OFFSET) as f32;
+        if self.emulator_state.program_counter >= PC_START {
+            snap_to(
+                "program_list",
+                RelativeOffset {
+                    x: 0.0,
+                    y: position,
+                },
+            )
+        } else {
+            Task::none()
+        }
     }
 }
 
@@ -131,6 +169,7 @@ pub struct ApplicationState {
     pub current_dir: Vec<PathBuf>,
     pub parent_dir: Option<PathBuf>,
     pub current_program: Vec<Instruction>,
+    pub auto_scroll_pc: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -43,10 +43,21 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             .style(button::success)
     };
 
+    let auto_scroll_button = if app_state.auto_scroll_pc {
+        button("Auto Scroll: ON")
+            .on_press(Message::ToggleAutoScrollPc)
+            .style(button::success)
+    } else {
+        button("Auto Scroll: OFF")
+            .on_press(Message::ToggleAutoScrollPc)
+            .style(button::danger)
+    };
+
     column![
         row![
             button("Next").on_press(Message::NextInstruction),
             run_button,
+            auto_scroll_button,
             no_prog_warning
         ]
         .spacing(5.0),

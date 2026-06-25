@@ -1,15 +1,9 @@
 use std::path::PathBuf;
 
 use chip_eight::Instruction;
-use iced::{
-    Task,
-    widget::{
-        operation::{RelativeOffset, snap_to},
-        pane_grid,
-    },
-};
+use iced::{Task, widget::pane_grid};
 
-use crate::{ApplicationState, InterpreterPaneViewKind, PC_START};
+use crate::{ApplicationState, InterpreterPaneViewKind};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -27,6 +21,9 @@ pub enum Message {
     NextInstruction,
     KeyToggled(u8),
     ToggleRunning,
+
+    // SCROLLING
+    ToggleAutoScrollPc,
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -67,21 +64,11 @@ pub fn application_update(
             if let Some(emulator_state) = emulator_state {
                 application_state.emulator_state = emulator_state;
             }
-
-            let normalised_pc = application_state.get_normalised_pc().unwrap_or(0);
-
-            // TODO: Stick this hard coded 10 into a slider
-            let position =
-                (normalised_pc as f32 + 0.5) / application_state.current_program.len() as f32;
-            if application_state.emulator_state.program_counter >= PC_START {
-                return snap_to(
-                    "program_list",
-                    RelativeOffset {
-                        x: 0.0,
-                        y: position,
-                    },
-                );
-            }
+            return application_state.scroll_to_pc();
+        }
+        Message::ToggleAutoScrollPc => {
+            application_state.auto_scroll_pc = !application_state.auto_scroll_pc;
+            return application_state.scroll_to_pc();
         }
         Message::ToggleRunning => {
             application_state.is_running = !application_state.is_running;
@@ -121,6 +108,7 @@ pub fn application_update(
             if let Err(e) = application_state.emulator.0.borrow_mut().reset(program) {
                 eprintln!("Program too large: {e}");
             };
+            return application_state.scroll_to_pc();
         }
         Message::EnterDirectory(path_buf) => {
             application_state.parent_dir = path_buf.parent().map(|x| x.to_path_buf());
