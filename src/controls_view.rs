@@ -1,30 +1,47 @@
 use iced::{
-    Element,
-    widget::{self, button, column, row, scrollable, text},
+    Element, Length,
+    widget::{self, button, column, container, row, scrollable, text},
 };
 
 use crate::{ApplicationState, Message, PC_START};
 
+// TODO: See if support for multiple breakpoints is needed
 pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     let instructions_list = column(app_state.current_program.iter().enumerate().map(
         |(i, instruction)| {
             // TODO: Nice formatting for instructions
             // offset.
-            let text = text(format!("{}: {:?}", (i * 2) + PC_START, instruction))
-                .wrapping(text::Wrapping::None);
+            let text = container(
+                text(format!("{}: {:?}", (i * 2) + PC_START, instruction))
+                    .wrapping(text::Wrapping::None),
+            )
+            .width(Length::Fill)
+            .padding(3);
 
-            if let Some(pc) = app_state.get_normalised_pc()
+            let container = if let Some(pc) = app_state.get_normalised_pc()
                 && pc == i
             {
-                text.style(text::primary).into()
+                text.style(container::secondary)
             } else {
-                text.style(text::secondary).into()
-            }
-        },
-    ));
+                text.style(container::transparent)
+            };
 
-    // TODO: Move to Id::unique()
-    // TODO: Add toggle for auto scroll
+            let bp_button = button("  ")
+                .padding(3)
+                .on_press(Message::ToggleBreakpoint(i));
+            let bp_button = if let Some(bp) = app_state.breakpoint
+                && bp == i
+            {
+                bp_button.style(button::danger)
+            } else {
+                bp_button.style(button::secondary)
+            };
+
+            row![bp_button, container,].spacing(5).into()
+        },
+    ))
+    .spacing(2);
+
     let program_list = scrollable(instructions_list).id(widget::Id::new("program_list"));
 
     let no_prog_warning = if app_state.current_program.is_empty() {

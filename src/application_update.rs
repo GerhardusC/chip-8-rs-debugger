@@ -22,8 +22,9 @@ pub enum Message {
     KeyToggled(u8),
     ToggleRunning,
 
-    // SCROLLING
+    // AUX
     ToggleAutoScrollPc,
+    ToggleBreakpoint(usize),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -101,6 +102,13 @@ pub fn application_update(
             application_state.metadata.register_y = y;
 
             return application_state.scroll_to_pc();
+        }
+        Message::ToggleBreakpoint(bp) => {
+            if application_state.breakpoint == Some(bp) {
+                application_state.breakpoint = None;
+            } else {
+                application_state.breakpoint = Some(bp)
+            }
         }
         Message::ToggleAutoScrollPc => {
             application_state.auto_scroll_pc = !application_state.auto_scroll_pc;

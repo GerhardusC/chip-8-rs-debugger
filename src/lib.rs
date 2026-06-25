@@ -112,6 +112,7 @@ impl Default for ApplicationState {
             current_program: vec![],
             auto_scroll_pc: true,
             metadata: Default::default(),
+            breakpoint: None,
         }
     }
 }
@@ -172,6 +173,7 @@ pub struct ApplicationState {
     pub current_program: Vec<Instruction>,
     pub auto_scroll_pc: bool,
     pub metadata: MetaData,
+    pub breakpoint: Option<usize>,
 }
 
 #[derive(Default)]
