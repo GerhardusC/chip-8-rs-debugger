@@ -90,18 +90,20 @@ const PROGRAMS: [(&str, &str); 4] = [
 fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     // TODO: Also add a text box to add any random url.
     let fetching = app_state.fetching_data;
-    Column::from_iter(PROGRAMS.map(|(name, url)| {
-        let btn = button(name)
-            .padding(8)
-            .style(button::secondary)
-            .width(Length::Fill);
-        if fetching {
-            btn
-        } else {
-            btn.on_press(Message::LoadProgramFromOnline(url.to_owned()))
-        }
-        .into()
-    }))
-    .spacing(5)
+    scrollable(
+        Column::from_iter(PROGRAMS.map(|(name, url)| {
+            let btn = button(name)
+                .padding(8)
+                .style(button::secondary)
+                .width(Length::Fill);
+            if fetching {
+                btn
+            } else {
+                btn.on_press(Message::LoadProgramFromOnline(url.to_owned()))
+            }
+            .into()
+        }))
+        .spacing(5),
+    )
     .into()
 }
