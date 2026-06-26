@@ -113,6 +113,7 @@ impl Default for ApplicationState {
             auto_scroll_pc: true,
             metadata: Default::default(),
             breakpoint: None,
+            execution_speed: 90,
         }
     }
 }
@@ -174,6 +175,7 @@ pub struct ApplicationState {
     pub auto_scroll_pc: bool,
     pub metadata: MetaData,
     pub breakpoint: Option<usize>,
+    pub execution_speed: u8,
 }
 
 #[derive(Default)]

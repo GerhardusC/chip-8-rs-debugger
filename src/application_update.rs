@@ -25,6 +25,7 @@ pub enum Message {
     // AUX
     ToggleAutoScrollPc,
     ToggleBreakpoint(usize),
+    SetExecutionSpeed(u8),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -109,6 +110,9 @@ pub fn application_update(
             } else {
                 application_state.breakpoint = Some(bp)
             }
+        }
+        Message::SetExecutionSpeed(new_speed) => {
+            application_state.execution_speed = new_speed;
         }
         Message::ToggleAutoScrollPc => {
             application_state.auto_scroll_pc = !application_state.auto_scroll_pc;

@@ -1,6 +1,6 @@
 use iced::{
-    Element, Length,
-    widget::{self, button, column, container, row, scrollable, text},
+    Alignment, Element, Length,
+    widget::{self, button, column, container, row, scrollable, slider, text},
 };
 
 use crate::{ApplicationState, Message, PC_START};
@@ -70,15 +70,31 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             .style(button::danger)
     };
 
+    let program_speed_slider = row![
+        text("⏩").style(text::primary),
+        container(slider(
+            1..=100,
+            app_state.execution_speed,
+            Message::SetExecutionSpeed
+        ))
+    ]
+    .padding(5)
+    .spacing(5)
+    .align_y(Alignment::Center);
+
     column![
         row![
             button("Next").on_press(Message::NextInstruction),
             run_button,
             auto_scroll_button,
-            no_prog_warning
+            no_prog_warning,
         ]
+        .align_y(Alignment::Center)
         .spacing(5.0),
+        program_speed_slider,
         program_list
     ]
+    .padding(5)
+    .spacing(5)
     .into()
 }
