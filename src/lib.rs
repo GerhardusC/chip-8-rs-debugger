@@ -178,10 +178,20 @@ pub struct ApplicationState {
     pub execution_speed: u8,
 }
 
-#[derive(Default)]
 pub struct MetaData {
     pub register_x: Option<usize>,
     pub register_y: Option<usize>,
+    pub draw_height: u8,
+}
+
+impl Default for MetaData {
+    fn default() -> Self {
+        Self {
+            register_x: Default::default(),
+            register_y: Default::default(),
+            draw_height: 5,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

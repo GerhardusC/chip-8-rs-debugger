@@ -66,7 +66,8 @@ pub fn application_update(
             if let Some(emulator_state) = emulator_state {
                 application_state.emulator_state = emulator_state;
             }
-            let (x, y) = if let Some(instruction) = application_state.get_instruction_under_pc() {
+            let instruction = application_state.get_instruction_under_pc();
+            let (x, y, h) = if let Some(instruction) = instruction {
                 match instruction {
                     Instruction::AddToRegister { register: x, .. }
                     | Instruction::JumpWithOffset { register_x: x, .. }
@@ -75,13 +76,8 @@ pub fn application_update(
                     | Instruction::SkipEqValueWithRegisterContents { register: x, .. }
                     | Instruction::SkipIfKey { register: x, .. }
                     | Instruction::SkipNotEqValueWithRegisterContents { register: x, .. }
-                    | Instruction::SubCommand { register: x, .. } => (Some(x), None),
-                    Instruction::Draw {
-                        x_register: x,
-                        y_register: y,
-                        ..
-                    }
-                    | Instruction::SkipEqRegisters {
+                    | Instruction::SubCommand { register: x, .. } => (Some(x), None, None),
+                    Instruction::SkipEqRegisters {
                         register_x: x,
                         register_y: y,
                     }
@@ -93,14 +89,26 @@ pub fn application_update(
                         register_x: x,
                         register_y: y,
                         ..
-                    } => (Some(x), Some(y)),
-                    _ => (None, None),
+                    } => (Some(x), Some(y), None),
+                    Instruction::Draw {
+                        x_register: x,
+                        y_register: y,
+                        height: h,
+                    } => (Some(x), Some(y), Some(h)),
+                    _ => (None, None, None),
                 }
             } else {
-                (None, None)
+                (None, None, None)
             };
             application_state.metadata.register_x = x;
             application_state.metadata.register_y = y;
+            if let Some(height) = h {
+                if height == 0 {
+                    application_state.metadata.draw_height = 16;
+                } else {
+                    application_state.metadata.draw_height = height;
+                }
+            }
 
             return application_state.scroll_to_pc();
         }

@@ -1,39 +1,58 @@
-use chip_eight::EmulatorState;
 use iced::{
     Element,
-    widget::{Column, Row, column, container, row, text},
+    widget::{Column, Row, Space, column, container, row, text},
 };
 
 use crate::{ApplicationState, Message, MetaData};
 
 pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
-    let EmulatorState {
-        index_register,
-        program_counter,
-        ..
-    } = &app_state.emulator_state;
-
-    let index_register = format!("INDEX REGISTER:     {:?}", index_register);
-    let program_counter = format!("PROGRAM_COUNTER:    {:?}", program_counter);
-
     column![
         variable_registers_view(app_state),
-        text(index_register),
-        text(program_counter),
+        index_register_view(app_state),
+    ]
+    .spacing(5)
+}
+
+fn index_register_view(app_state: &'_ ApplicationState) -> Row<'_, Message> {
+    let index_lookahead = app_state.metadata.draw_height;
+    let memory_pointed_to = Column::from_iter((0..index_lookahead).map(|i| {
+        let y = app_state
+            .emulator_state
+            .memory
+            .get(app_state.emulator_state.index_register + i as usize)
+            .copied()
+            .unwrap_or(0_u8);
+        let current_byte = format!("{:08b}", y);
+        let current_byte = current_byte.chars().map(|c| {
+            container(Space::new().width(18.0).height(18.0))
+                .style(if c == '0' {
+                    container::bordered_box
+                } else {
+                    container::secondary
+                })
+                .into()
+        });
+        Row::from_iter(current_byte).into()
+    }));
+    row![
+        memory_pointed_to,
+        column![
+            container(text("Index Register:").style(text::secondary)),
+            container(text(app_state.emulator_state.index_register))
+                .style(container::bordered_box)
+                .padding(10)
+        ]
+        .spacing(5)
+        .padding(5),
         stack_view(app_state),
     ]
     .spacing(5)
 }
 
 fn stack_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    if app_state.emulator_state.stack.is_empty() {
-        let element: Option<Element<'_, Message>> = None;
-        return element.into();
-    }
-
     let heading = container(text("Stack:").style(text::secondary)).padding(5);
 
-    Some(column![
+    column![
         heading,
         Row::from_iter(app_state.emulator_state.stack.iter().map(|x| {
             container(text(x.to_string()))
@@ -42,7 +61,7 @@ fn stack_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
                 .into()
         }))
         .spacing(5),
-    ])
+    ]
     .into()
 }
 
