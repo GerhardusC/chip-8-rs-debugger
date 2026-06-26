@@ -116,6 +116,8 @@ impl Default for ApplicationState {
             execution_speed: 90,
             theme: Some(Theme::Nord),
             quirks_mode: SupportedQuirksModes::Chip8,
+            program_source: ProgramPickerSource::Disk,
+            fetching_data: false,
         }
     }
 }
@@ -184,12 +186,29 @@ pub struct ApplicationState {
     pub execution_speed: u8,
     pub theme: Option<Theme>,
     pub quirks_mode: SupportedQuirksModes,
+    pub program_source: ProgramPickerSource,
+    pub fetching_data: bool,
 }
 
 pub struct MetaData {
     pub register_x: Option<usize>,
     pub register_y: Option<usize>,
     pub draw_height: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProgramPickerSource {
+    Disk,
+    Online,
+}
+
+impl Display for ProgramPickerSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProgramPickerSource::Disk => f.write_str("Select from Disk"),
+            ProgramPickerSource::Online => f.write_str("Select from Online"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

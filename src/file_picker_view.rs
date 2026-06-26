@@ -1,11 +1,28 @@
 use iced::{
     Element, Length,
-    widget::{button, column, scrollable, text},
+    widget::{Column, button, column, pick_list, scrollable, text},
 };
 
-use crate::{ApplicationState, Message};
+use crate::{ApplicationState, Message, ProgramPickerSource};
 
 pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
+    let pl = pick_list(
+        [ProgramPickerSource::Disk, ProgramPickerSource::Online],
+        Some(&app_state.program_source),
+        Message::SetProgramPickerSource,
+    );
+    column![
+        pl,
+        match app_state.program_source {
+            crate::ProgramPickerSource::Disk => file_program_picker(app_state),
+            crate::ProgramPickerSource::Online => online_program_picker(app_state),
+        }
+    ]
+    .spacing(5)
+    .into()
+}
+
+fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     let button = |label, message| {
         button(text(label).size(16))
             .padding(8)
@@ -47,6 +64,44 @@ pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             .spacing(5)
         ))
     ]
+    .spacing(5)
+    .into()
+}
+
+const PROGRAMS: [(&str, &str); 4] = [
+    (
+        "Snake",
+        "https://johnearnest.github.io/chip8Archive/roms/snake.ch8",
+    ),
+    (
+        "Rockto",
+        "https://johnearnest.github.io/chip8Archive/roms/rockto.ch8",
+    ),
+    (
+        "Tic-Tac-Toe",
+        "https://johnearnest.github.io/chip8Archive/roms/ultimatetictactoe.ch8",
+    ),
+    (
+        "Br8kout",
+        "https://johnearnest.github.io/chip8Archive/roms/br8kout.ch8",
+    ),
+];
+
+fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
+    // TODO: Also add a text box to add any random url.
+    let fetching = app_state.fetching_data;
+    Column::from_iter(PROGRAMS.map(|(name, url)| {
+        let btn = button(name)
+            .padding(8)
+            .style(button::secondary)
+            .width(Length::Fill);
+        if fetching {
+            btn
+        } else {
+            btn.on_press(Message::LoadProgramFromOnline(url.to_owned()))
+        }
+        .into()
+    }))
     .spacing(5)
     .into()
 }

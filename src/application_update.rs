@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chip_eight::{Instruction, QuirksFields, QuirksMode, SuperChipBehaviour};
 use iced::{Task, Theme, widget::pane_grid};
 
-use crate::{ApplicationState, InterpreterPaneViewKind, SupportedQuirksModes};
+use crate::{ApplicationState, InterpreterPaneViewKind, ProgramPickerSource, SupportedQuirksModes};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -14,8 +14,9 @@ pub enum Message {
     LoadProgram(PathBuf),
     EnterDirectory(PathBuf),
     UpdateProgram(Vec<u8>),
-    FsError,
+    ProgramFetchError,
     UpdateDirectoryListing(Vec<PathBuf>),
+    LoadProgramFromOnline(String),
 
     // EMULATOR CONTROLS
     NextInstruction,
@@ -28,6 +29,7 @@ pub enum Message {
     ToggleBreakpoint(usize),
     SetExecutionSpeed(u8),
     ThemeSelected(Theme),
+    SetProgramPickerSource(ProgramPickerSource),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -143,16 +145,42 @@ pub fn application_update(
                 *key = if *key > 0 { 0 } else { 1 };
             };
         }
+        Message::SetProgramPickerSource(program_picker_source) => {
+            application_state.program_source = program_picker_source;
+        }
         Message::LoadProgram(path_buf) => {
             return Task::perform(async { std::fs::read(path_buf) }, |x| {
                 if let Ok(x) = x {
                     Message::UpdateProgram(x)
                 } else {
-                    Message::FsError
+                    Message::ProgramFetchError
                 }
             });
         }
+        Message::LoadProgramFromOnline(url) => {
+            application_state.fetching_data = true;
+            return Task::perform(
+                async {
+                    let res = surf::get(url).await;
+                    if let Ok(mut res) = res
+                        && let Ok(res) = res.body_bytes().await
+                    {
+                        Some(res)
+                    } else {
+                        None
+                    }
+                },
+                |program| {
+                    if let Some(program) = program {
+                        Message::UpdateProgram(program)
+                    } else {
+                        Message::ProgramFetchError
+                    }
+                },
+            );
+        }
         Message::UpdateProgram(program) => {
+            application_state.fetching_data = false;
             application_state.current_program = program
                 .chunks(2)
                 .map(|c| {
@@ -218,7 +246,7 @@ pub fn application_update(
                     if let Ok(x) = x {
                         Message::UpdateDirectoryListing(x)
                     } else {
-                        Message::FsError
+                        Message::ProgramFetchError
                     }
                 },
             );
@@ -226,7 +254,8 @@ pub fn application_update(
         Message::UpdateDirectoryListing(current_dir) => {
             application_state.current_dir = current_dir;
         }
-        Message::FsError => {
+        Message::ProgramFetchError => {
+            application_state.fetching_data = false;
             eprintln!("Failed to read file/directory");
         }
         Message::PaneSplit(axis, pane) => {
