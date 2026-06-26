@@ -115,6 +115,7 @@ impl Default for ApplicationState {
             breakpoint: None,
             execution_speed: 90,
             theme: Some(Theme::Nord),
+            quirks_mode: SupportedQuirksModes::Chip8,
         }
     }
 }
@@ -182,12 +183,28 @@ pub struct ApplicationState {
     pub breakpoint: Option<usize>,
     pub execution_speed: u8,
     pub theme: Option<Theme>,
+    pub quirks_mode: SupportedQuirksModes,
 }
 
 pub struct MetaData {
     pub register_x: Option<usize>,
     pub register_y: Option<usize>,
     pub draw_height: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SupportedQuirksModes {
+    Chip8,
+    SuperChip,
+}
+
+impl Display for SupportedQuirksModes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SupportedQuirksModes::Chip8 => f.write_str("Chip-8 Quirks"),
+            SupportedQuirksModes::SuperChip => f.write_str("Super Chip Quirks"),
+        }
+    }
 }
 
 impl Default for MetaData {

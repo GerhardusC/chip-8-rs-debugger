@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use chip_eight::Instruction;
+use chip_eight::{Instruction, QuirksFields, QuirksMode, SuperChipBehaviour};
 use iced::{Task, Theme, widget::pane_grid};
 
-use crate::{ApplicationState, InterpreterPaneViewKind};
+use crate::{ApplicationState, InterpreterPaneViewKind, SupportedQuirksModes};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -21,6 +21,7 @@ pub enum Message {
     NextInstruction,
     KeyToggled(u8),
     ToggleRunning,
+    UpdateQuirksMode(SupportedQuirksModes),
 
     // AUX
     ToggleAutoScrollPc,
@@ -165,7 +166,37 @@ pub fn application_update(
             if let Err(e) = application_state.emulator.0.borrow_mut().reset(program) {
                 eprintln!("Program too large: {e}");
             };
+
+            let quirks = chip_eight::QuirksFields::from(chip_eight::QuirksMode::Chip8);
+            application_state
+                .emulator
+                .0
+                .borrow_mut()
+                .with_custom_quirks(QuirksFields {
+                    disp_wait: false,
+                    ..quirks
+                });
+
             return application_state.scroll_to_pc();
+        }
+        Message::UpdateQuirksMode(new_mode) => {
+            let quirks_mode = match &new_mode {
+                SupportedQuirksModes::Chip8 => QuirksMode::Chip8,
+                SupportedQuirksModes::SuperChip => {
+                    QuirksMode::SuperChip(SuperChipBehaviour::Modern)
+                }
+            };
+            application_state.quirks_mode = new_mode;
+
+            let quirks = chip_eight::QuirksFields::from(quirks_mode);
+            application_state
+                .emulator
+                .0
+                .borrow_mut()
+                .with_custom_quirks(QuirksFields {
+                    disp_wait: false,
+                    ..quirks
+                });
         }
         Message::EnterDirectory(path_buf) => {
             application_state.parent_dir = path_buf.parent().map(|x| x.to_path_buf());

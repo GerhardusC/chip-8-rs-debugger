@@ -1,9 +1,9 @@
 use iced::{
     Alignment, Element, Length,
-    widget::{self, button, column, container, row, scrollable, slider, text},
+    widget::{self, button, column, container, pick_list, row, scrollable, slider, text},
 };
 
-use crate::{ApplicationState, Message, PC_START};
+use crate::{ApplicationState, Message, PC_START, SupportedQuirksModes};
 
 // TODO: See if support for multiple breakpoints is needed
 pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
@@ -82,11 +82,18 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     .spacing(5)
     .align_y(Alignment::Center);
 
+    let select_quirks_mode = pick_list(
+        [SupportedQuirksModes::Chip8, SupportedQuirksModes::SuperChip],
+        Some(&app_state.quirks_mode),
+        Message::UpdateQuirksMode,
+    );
+
     column![
         row![
             button("Next").on_press(Message::NextInstruction),
             run_button,
             auto_scroll_button,
+            select_quirks_mode,
             no_prog_warning,
         ]
         .align_y(Alignment::Center)
