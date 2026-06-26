@@ -4,7 +4,7 @@ use std::{
 
 use chip_eight::{Draw, Emulator, EmulatorState, Instruction, ReadInputState};
 use iced::{
-    Task,
+    Task, Theme,
     widget::{
         operation::{RelativeOffset, snap_to},
         pane_grid::{self, Configuration},
@@ -114,6 +114,7 @@ impl Default for ApplicationState {
             metadata: Default::default(),
             breakpoint: None,
             execution_speed: 90,
+            theme: Some(Theme::Nord),
         }
     }
 }
@@ -159,6 +160,10 @@ impl ApplicationState {
             Task::none()
         }
     }
+
+    pub fn theme(&self) -> Option<Theme> {
+        self.theme.clone()
+    }
 }
 
 pub struct ApplicationState {
@@ -176,6 +181,7 @@ pub struct ApplicationState {
     pub metadata: MetaData,
     pub breakpoint: Option<usize>,
     pub execution_speed: u8,
+    pub theme: Option<Theme>,
 }
 
 pub struct MetaData {

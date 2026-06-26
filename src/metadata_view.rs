@@ -1,6 +1,6 @@
 use iced::{
-    Element,
-    widget::{Column, Row, Space, column, container, row, text},
+    Element, Length,
+    widget::{Column, Row, Space, column, container, row, scrollable, text},
 };
 
 use crate::{ApplicationState, Message, MetaData};
@@ -13,7 +13,7 @@ pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
     .spacing(5)
 }
 
-fn index_register_view(app_state: &'_ ApplicationState) -> Row<'_, Message> {
+fn index_register_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     // TODO: Add the ability to configure this with a slider.
     let index_lookahead = app_state.metadata.draw_height;
     let memory_pointed_to = Column::from_iter((0..index_lookahead).map(|i| {
@@ -34,19 +34,23 @@ fn index_register_view(app_state: &'_ ApplicationState) -> Row<'_, Message> {
         });
         Row::from_iter(current_byte).into()
     }));
-    row![
-        memory_pointed_to,
-        column![
-            container(text("Index Register:").style(text::secondary)),
-            container(text(app_state.emulator_state.index_register))
-                .style(container::bordered_box)
-                .padding(10)
+    scrollable(
+        row![
+            memory_pointed_to,
+            column![
+                container(text("Index Register:").style(text::secondary)),
+                container(text(app_state.emulator_state.index_register))
+                    .style(container::bordered_box)
+                    .padding(10)
+            ]
+            .spacing(5)
+            .padding(5),
+            stack_view(app_state),
         ]
-        .spacing(5)
-        .padding(5),
-        stack_view(app_state),
-    ]
-    .spacing(5)
+        .spacing(5),
+    )
+    .width(Length::Fill)
+    .into()
 }
 
 fn stack_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {

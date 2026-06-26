@@ -12,7 +12,7 @@ pub fn interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<'
     let selected = app_state.pane_purposes.get(&id);
 
     let comp: Option<Element<'_, Message>> = selected.map(|x| match x {
-        InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state).into(),
+        InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state),
         InterpreterPaneViewKind::ControllerView => controls(app_state),
         InterpreterPaneViewKind::MetadataView => metadata(app_state).into(),
         InterpreterPaneViewKind::Keypad => keypad(app_state),

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chip_eight::Instruction;
-use iced::{Task, widget::pane_grid};
+use iced::{Task, Theme, widget::pane_grid};
 
 use crate::{ApplicationState, InterpreterPaneViewKind};
 
@@ -26,6 +26,7 @@ pub enum Message {
     ToggleAutoScrollPc,
     ToggleBreakpoint(usize),
     SetExecutionSpeed(u8),
+    ThemeSelected(Theme),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -269,6 +270,9 @@ pub fn application_update(
             application_state
                 .pane_purposes
                 .insert(k, interpreter_pane_view_kind);
+        }
+        Message::ThemeSelected(theme) => {
+            application_state.theme = Some(theme);
         }
     }
     Task::none()
