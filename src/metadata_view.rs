@@ -14,6 +14,7 @@ pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
 }
 
 fn index_register_view(app_state: &'_ ApplicationState) -> Row<'_, Message> {
+    // TODO: Add the ability to configure this with a slider.
     let index_lookahead = app_state.metadata.draw_height;
     let memory_pointed_to = Column::from_iter((0..index_lookahead).map(|i| {
         let y = app_state
@@ -22,13 +23,12 @@ fn index_register_view(app_state: &'_ ApplicationState) -> Row<'_, Message> {
             .get(app_state.emulator_state.index_register + i as usize)
             .copied()
             .unwrap_or(0_u8);
-        let current_byte = format!("{:08b}", y);
-        let current_byte = current_byte.chars().map(|c| {
+        let current_byte = (0_u8..8).rev().map(|i| {
             container(Space::new().width(18.0).height(18.0))
-                .style(if c == '0' {
-                    container::bordered_box
-                } else {
+                .style(if y & (1_u8 << i) > 0 {
                     container::secondary
+                } else {
+                    container::bordered_box
                 })
                 .into()
         });
