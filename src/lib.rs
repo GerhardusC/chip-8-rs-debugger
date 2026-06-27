@@ -170,6 +170,56 @@ impl ApplicationState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum EmulatorKeyEvent {
+    Up,
+    Down,
+    Toggle,
+}
+
+static CHARACTER_MAP: [char; 16] = [
+    'x', '1', '2', '3', 'q', 'w', 'e', 'a', 's', 'd', 'z', 'c', '4', 'r', 'f', 'v',
+];
+
+pub enum EmulatorKeyboardInputKind {
+    UsKeyboardChar(char),
+    HexKeyIndex(u8),
+}
+
+pub fn respond_to_key_event(
+    application_state: &mut ApplicationState,
+    e: EmulatorKeyEvent,
+    c: EmulatorKeyboardInputKind,
+) {
+    let position = match c {
+        EmulatorKeyboardInputKind::UsKeyboardChar(c) => {
+            let Some(position) = CHARACTER_MAP
+                .iter()
+                .position(|inner| *inner == c.to_ascii_lowercase())
+            else {
+                return;
+            };
+            (position & 0xF) as u8
+        }
+        EmulatorKeyboardInputKind::HexKeyIndex(position) => position,
+    };
+
+    if let Some(key) = application_state
+        .emulator
+        .0
+        .borrow_mut()
+        .input_provider
+        .keys_state
+        .get_mut(position as usize & 0xF)
+    {
+        match e {
+            EmulatorKeyEvent::Up => *key = 0,
+            EmulatorKeyEvent::Down => *key = 1,
+            EmulatorKeyEvent::Toggle => *key = if *key == 0 { 1 } else { 0 },
+        };
+    };
+}
+
 pub struct ApplicationState {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,

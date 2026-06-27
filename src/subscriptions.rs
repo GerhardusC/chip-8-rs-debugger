@@ -1,10 +1,17 @@
 use std::time::Duration;
 
-use iced::{Subscription, time};
+use iced::{Subscription, event, time};
 
 use crate::{ApplicationState, Message};
 
-pub fn interpreter_running(application_state: &ApplicationState) -> Subscription<Message> {
+pub fn application_subs(application_state: &ApplicationState) -> Subscription<Message> {
+    Subscription::batch([
+        interpreter_running(application_state),
+        user_input_events(application_state),
+    ])
+}
+
+fn interpreter_running(application_state: &ApplicationState) -> Subscription<Message> {
     if application_state.is_running
         && application_state.get_normalised_pc() != application_state.breakpoint
     {
@@ -15,4 +22,8 @@ pub fn interpreter_running(application_state: &ApplicationState) -> Subscription
         .map(|_| Message::NextInstruction);
     }
     Subscription::none()
+}
+
+fn user_input_events(_: &ApplicationState) -> Subscription<Message> {
+    event::listen().map(Message::UserEvent)
 }

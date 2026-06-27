@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use chip_eight_debugger::{
-    ApplicationState, application_update, application_view, interpreter_running,
+    ApplicationState, application_subs, application_update, application_view,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         application_view,
     )
     .theme(ApplicationState::theme)
-    .subscription(interpreter_running)
+    .subscription(application_subs)
     .window(iced::window::Settings {
         size: iced::Size {
             width: 1440.0,

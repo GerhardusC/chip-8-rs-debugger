@@ -1,10 +1,17 @@
 use std::path::PathBuf;
 
 use chip_eight::{Instruction, QuirksFields, QuirksMode, SuperChipBehaviour};
-use iced::{Event, Task, Theme, widget::pane_grid};
+use iced::{
+    Event, Task, Theme,
+    keyboard::{self, key},
+    widget::pane_grid,
+};
 use surf::Url;
 
-use crate::{ApplicationState, InterpreterPaneViewKind, ProgramPickerSource, SupportedQuirksModes};
+use crate::{
+    ApplicationState, EmulatorKeyEvent, EmulatorKeyboardInputKind, InterpreterPaneViewKind,
+    ProgramPickerSource, SupportedQuirksModes, respond_to_key_event,
+};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -21,7 +28,7 @@ pub enum Message {
 
     // EMULATOR CONTROLS
     NextInstruction,
-    KeyToggled(u8),
+    EmulatorKey(u8),
     ToggleRunning,
     UpdateQuirksMode(SupportedQuirksModes),
 
@@ -34,7 +41,7 @@ pub enum Message {
     UpdateProgramPath(String),
 
     // KEYBOARD
-    Event(Event),
+    UserEvent(Event),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -141,20 +148,53 @@ pub fn application_update(
             application_state.is_running = !application_state.is_running;
             Task::none()
         }
-        Message::KeyToggled(key) => {
-            if let Some(key) = application_state
-                .emulator
-                .0
-                .borrow_mut()
-                .input_provider
-                .keys_state
-                .get_mut(key as usize & 0xF)
-            {
-                *key = if *key > 0 { 0 } else { 1 };
-            };
+        Message::EmulatorKey(key) => {
+            respond_to_key_event(
+                application_state,
+                EmulatorKeyEvent::Toggle,
+                EmulatorKeyboardInputKind::HexKeyIndex(key),
+            );
             Task::none()
         }
-        Message::Event(_event) => Task::none(),
+        Message::UserEvent(event) => match event {
+            Event::Keyboard(event) => match event {
+                keyboard::Event::KeyPressed { key: user_key, .. } => match user_key {
+                    keyboard::Key::Named(named) => match named {
+                        key::Named::Space => {
+                            application_state.is_running = !application_state.is_running;
+                            Task::none()
+                        }
+                        _ => Task::none(),
+                    },
+                    iced::keyboard::Key::Character(c) => {
+                        if let Some(c) = c.chars().next() {
+                            respond_to_key_event(
+                                application_state,
+                                EmulatorKeyEvent::Down,
+                                EmulatorKeyboardInputKind::UsKeyboardChar(c),
+                            );
+                        };
+                        Task::none()
+                    }
+                    _ => Task::none(),
+                },
+                iced::keyboard::Event::KeyReleased { key, .. } => match key {
+                    iced::keyboard::Key::Character(c) => {
+                        if let Some(c) = c.chars().next() {
+                            respond_to_key_event(
+                                application_state,
+                                EmulatorKeyEvent::Up,
+                                EmulatorKeyboardInputKind::UsKeyboardChar(c),
+                            );
+                        };
+                        Task::none()
+                    }
+                    _ => Task::none(),
+                },
+                _ => Task::none(),
+            },
+            _ => Task::none(),
+        },
         Message::SetProgramPickerSource(program_picker_source) => {
             application_state.program_source = program_picker_source;
             Task::none()

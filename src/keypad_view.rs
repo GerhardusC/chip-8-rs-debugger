@@ -17,7 +17,7 @@ fn keypad_btn(app_state: &'_ ApplicationState, value: u8) -> Button<'_, Message>
         .map(|x| *x > 0)
         .unwrap_or(false);
     let bton: Button<'_, Message> = button(text(btn_text))
-        .on_press(Message::KeyToggled(value))
+        .on_press(Message::EmulatorKey(value))
         .style(if active {
             button::success
         } else {
