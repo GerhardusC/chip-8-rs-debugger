@@ -26,6 +26,6 @@ fetch_urls() {
 }
 
 fetch_urls "Timendus/chip8-test-suite" main bin > games.txt
-fetch_urls "JohnEarnest/chip8Archive" master roms >> games.txt
 fetch_urls "kripod/chip8-roms" master games hires programs >> games.txt
+fetch_urls "JohnEarnest/chip8Archive" master roms >> games.txt
 
