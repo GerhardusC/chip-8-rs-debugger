@@ -1,10 +1,17 @@
-use iced::widget::pane_grid::{self, PaneGrid};
-use iced::widget::{button, container, responsive, row, text};
-use iced::{Center, Color, Element, Fill, Length};
+use iced::{
+    Center, Color, Element, Fill, Length,
+    widget::{
+        button, column, container,
+        pane_grid::{self, PaneGrid},
+        pick_list, responsive, row, text,
+    },
+};
 
-use crate::interpreter_pane_view::interpreter_pane;
-use crate::style;
-use crate::{ApplicationState, Message};
+use crate::{
+    AVAILABLE_VIEWS, ApplicationState, InterpreterPaneViewKind, Message, controls_view::controls,
+    file_picker_view::file_picker, interpreter_screen_view::interpreter_screen,
+    keypad_view::keypad, metadata_view::metadata, style,
+};
 
 const PANE_HEADER_TEXT_COLOR: Color = Color::from_rgba(
     0xaa as f32 / 255.0,
@@ -108,4 +115,23 @@ fn view_panel_controls(
     ]
     .spacing(10)
     .into()
+}
+
+fn interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<'_, Message> {
+    let selected = app_state.pane_purposes.get(&id);
+
+    let comp: Option<Element<'_, Message>> = selected.map(|x| match x {
+        InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state),
+        InterpreterPaneViewKind::ControllerView => controls(app_state),
+        InterpreterPaneViewKind::MetadataView => metadata(app_state).into(),
+        InterpreterPaneViewKind::Keypad => keypad(app_state),
+        InterpreterPaneViewKind::ProgramPickerView => file_picker(app_state),
+    });
+
+    let list = pick_list(AVAILABLE_VIEWS, selected, move |x| {
+        Message::PaneSetActiveView(x, id)
+    });
+    let content = column![list, comp,].spacing(10);
+
+    container(content).padding(5).into()
 }

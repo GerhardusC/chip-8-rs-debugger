@@ -4,19 +4,19 @@ use std::{
 
 use chip_eight::{Draw, Emulator, EmulatorState, Instruction, ReadInputState};
 use iced::{
-    Task, Theme,
-    widget::{
-        operation::{RelativeOffset, snap_to},
-        pane_grid::{self, Configuration},
-    },
+    Theme,
+    widget::pane_grid::{self, Configuration},
 };
 
 mod application_update;
 mod application_view;
+mod controls_update;
 mod controls_view;
+mod emulator_update;
+mod file_picker_update;
 mod file_picker_view;
-mod interpreter_pane_view;
 mod interpreter_screen_view;
+mod keyboard_update;
 mod keypad_view;
 mod main_pane_update;
 mod main_pane_view;
@@ -124,8 +124,6 @@ impl Default for ApplicationState {
     }
 }
 
-const SCROLL_OFFSET: usize = 10;
-
 impl ApplicationState {
     /// Convert program counter value to index in current program.
     /// Returns none if PC in emulator is out of range
@@ -143,29 +141,6 @@ impl ApplicationState {
             .map(|x| x.to_owned())
     }
 
-    pub fn scroll_to_pc(&mut self) -> Task<Message> {
-        if !self.auto_scroll_pc {
-            return Task::none();
-        };
-        // Avoiding divide by zero or subtracting with overflow
-        if self.current_program.len() <= SCROLL_OFFSET {
-            return Task::none();
-        }
-        let normalised_pc = self.get_normalised_pc().unwrap_or(0);
-        let position = normalised_pc as f32 / (self.current_program.len() - SCROLL_OFFSET) as f32;
-        if self.emulator_state.program_counter >= PC_START {
-            snap_to(
-                "program_list",
-                RelativeOffset {
-                    x: 0.0,
-                    y: position,
-                },
-            )
-        } else {
-            Task::none()
-        }
-    }
-
     pub fn theme(&self) -> Option<Theme> {
         self.theme.clone()
     }
@@ -178,47 +153,24 @@ pub enum EmulatorKeyEvent {
     Toggle,
 }
 
-static CHARACTER_MAP: [char; 16] = [
-    'x', '1', '2', '3', 'q', 'w', 'e', 'a', 's', 'd', 'z', 'c', '4', 'r', 'f', 'v',
-];
-
 pub enum EmulatorKeyboardInputKind {
     UsKeyboardChar(char),
     HexKeyIndex(u8),
 }
 
-pub fn respond_to_key_event(
-    application_state: &mut ApplicationState,
-    e: EmulatorKeyEvent,
-    c: EmulatorKeyboardInputKind,
-) {
-    let position = match c {
-        EmulatorKeyboardInputKind::UsKeyboardChar(c) => {
-            let Some(position) = CHARACTER_MAP
-                .iter()
-                .position(|inner| *inner == c.to_ascii_lowercase())
-            else {
-                return;
-            };
-            (position & 0xF) as u8
-        }
-        EmulatorKeyboardInputKind::HexKeyIndex(position) => position,
-    };
+#[derive(Clone, Copy, Default)]
+pub struct PaneState {
+    pub id: usize,
+    pub is_pinned: bool,
+}
 
-    if let Some(key) = application_state
-        .emulator
-        .0
-        .borrow_mut()
-        .input_provider
-        .keys_state
-        .get_mut(position as usize & 0xF)
-    {
-        match e {
-            EmulatorKeyEvent::Up => *key = 0,
-            EmulatorKeyEvent::Down => *key = 1,
-            EmulatorKeyEvent::Toggle => *key = if *key == 0 { 1 } else { 0 },
-        };
-    };
+impl PaneState {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            is_pinned: false,
+        }
+    }
 }
 
 pub struct ApplicationState {
