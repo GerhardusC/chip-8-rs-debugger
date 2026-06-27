@@ -157,29 +157,27 @@ pub fn application_update(
             Task::none()
         }
         Message::UserEvent(event) => match event {
-            Event::Keyboard(event) => match event {
-                keyboard::Event::KeyPressed { key: user_key, .. } => match user_key {
-                    keyboard::Key::Named(named) => match named {
-                        key::Named::Space => {
+            Event::Keyboard(event) => {
+                match event {
+                    keyboard::Event::KeyPressed { key: user_key, .. } => match user_key {
+                        keyboard::Key::Named(key::Named::Space) => {
                             application_state.is_running = !application_state.is_running;
-                            Task::none()
                         }
-                        _ => Task::none(),
+                        keyboard::Key::Character(c) => {
+                            if let Some(c) = c.chars().next() {
+                                respond_to_key_event(
+                                    application_state,
+                                    EmulatorKeyEvent::Down,
+                                    EmulatorKeyboardInputKind::UsKeyboardChar(c),
+                                );
+                            };
+                        }
+                        _ => (),
                     },
-                    iced::keyboard::Key::Character(c) => {
-                        if let Some(c) = c.chars().next() {
-                            respond_to_key_event(
-                                application_state,
-                                EmulatorKeyEvent::Down,
-                                EmulatorKeyboardInputKind::UsKeyboardChar(c),
-                            );
-                        };
-                        Task::none()
-                    }
-                    _ => Task::none(),
-                },
-                iced::keyboard::Event::KeyReleased { key, .. } => match key {
-                    iced::keyboard::Key::Character(c) => {
+                    keyboard::Event::KeyReleased {
+                        key: keyboard::Key::Character(c),
+                        ..
+                    } => {
                         if let Some(c) = c.chars().next() {
                             respond_to_key_event(
                                 application_state,
@@ -187,12 +185,11 @@ pub fn application_update(
                                 EmulatorKeyboardInputKind::UsKeyboardChar(c),
                             );
                         };
-                        Task::none()
                     }
-                    _ => Task::none(),
-                },
-                _ => Task::none(),
-            },
+                    _ => (),
+                };
+                Task::none()
+            }
             _ => Task::none(),
         },
         Message::SetProgramPickerSource(program_picker_source) => {
