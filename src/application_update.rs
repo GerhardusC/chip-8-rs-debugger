@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use chip_eight::{Instruction, QuirksFields, QuirksMode, SuperChipBehaviour};
-use iced::{Task, Theme, widget::pane_grid};
+use iced::{Event, Task, Theme, widget::pane_grid};
 use surf::Url;
 
 use crate::{ApplicationState, InterpreterPaneViewKind, ProgramPickerSource, SupportedQuirksModes};
@@ -32,6 +32,9 @@ pub enum Message {
     ThemeSelected(Theme),
     SetProgramPickerSource(ProgramPickerSource),
     UpdateProgramPath(String),
+
+    // KEYBOARD
+    Event(Event),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -116,7 +119,7 @@ pub fn application_update(
                 }
             }
 
-            return application_state.scroll_to_pc();
+            application_state.scroll_to_pc()
         }
         Message::ToggleBreakpoint(bp) => {
             if application_state.breakpoint == Some(bp) {
@@ -124,16 +127,19 @@ pub fn application_update(
             } else {
                 application_state.breakpoint = Some(bp)
             }
+            Task::none()
         }
         Message::SetExecutionSpeed(new_speed) => {
             application_state.execution_speed = new_speed;
+            Task::none()
         }
         Message::ToggleAutoScrollPc => {
             application_state.auto_scroll_pc = !application_state.auto_scroll_pc;
-            return application_state.scroll_to_pc();
+            application_state.scroll_to_pc()
         }
         Message::ToggleRunning => {
             application_state.is_running = !application_state.is_running;
+            Task::none()
         }
         Message::KeyToggled(key) => {
             if let Some(key) = application_state
@@ -146,28 +152,31 @@ pub fn application_update(
             {
                 *key = if *key > 0 { 0 } else { 1 };
             };
+            Task::none()
         }
+        Message::Event(_event) => Task::none(),
         Message::SetProgramPickerSource(program_picker_source) => {
             application_state.program_source = program_picker_source;
+            Task::none()
         }
         Message::UpdateProgramPath(path) => {
             application_state.program_path = path;
+            Task::none()
         }
-        Message::LoadProgram(path_buf) => {
-            return Task::perform(async { std::fs::read(path_buf) }, |x| {
-                if let Ok(x) = x {
-                    Message::UpdateProgram(x)
-                } else {
-                    Message::ProgramFetchError
-                }
-            });
-        }
+        Message::LoadProgram(path_buf) => Task::perform(async { std::fs::read(path_buf) }, |x| {
+            if let Ok(x) = x {
+                Message::UpdateProgram(x)
+            } else {
+                Message::ProgramFetchError
+            }
+        }),
         Message::LoadProgramFromOnline(url) => {
             if Url::parse(&url).is_err() {
+                // TODO: Handle invalid URL
                 return Task::none();
             }
             application_state.fetching_data = true;
-            return Task::perform(
+            Task::perform(
                 async {
                     let res = surf::get(url).await;
                     if let Ok(mut res) = res
@@ -185,7 +194,7 @@ pub fn application_update(
                         Message::ProgramFetchError
                     }
                 },
-            );
+            )
         }
         Message::UpdateProgram(program) => {
             application_state.fetching_data = false;
@@ -213,7 +222,7 @@ pub fn application_update(
                     ..quirks
                 });
 
-            return application_state.scroll_to_pc();
+            application_state.scroll_to_pc()
         }
         Message::UpdateQuirksMode(new_mode) => {
             let quirks_mode = match &new_mode {
@@ -233,11 +242,12 @@ pub fn application_update(
                     disp_wait: false,
                     ..quirks
                 });
+            Task::none()
         }
         Message::EnterDirectory(path_buf) => {
             application_state.parent_dir = path_buf.parent().map(|x| x.to_path_buf());
 
-            return Task::perform(
+            Task::perform(
                 async {
                     std::fs::read_dir(path_buf).map(|dir| {
                         dir.flat_map(|entry| {
@@ -257,14 +267,16 @@ pub fn application_update(
                         Message::ProgramFetchError
                     }
                 },
-            );
+            )
         }
         Message::UpdateDirectoryListing(current_dir) => {
             application_state.current_dir = current_dir;
+            Task::none()
         }
         Message::ProgramFetchError => {
             application_state.fetching_data = false;
             eprintln!("Failed to read file/directory");
+            Task::none()
         }
         Message::PaneSplit(axis, pane) => {
             let result = application_state.panes.split(
@@ -278,6 +290,7 @@ pub fn application_update(
             }
 
             application_state.panes_created += 1;
+            Task::none()
         }
         Message::PaneSplitFocused(axis) => {
             if let Some(pane) = application_state.focus {
@@ -293,6 +306,7 @@ pub fn application_update(
 
                 application_state.panes_created += 1;
             }
+            Task::none()
         }
         Message::PaneFocusAdjacent(direction) => {
             if let Some(pane) = application_state.focus
@@ -300,30 +314,40 @@ pub fn application_update(
             {
                 application_state.focus = Some(adjacent);
             }
+            Task::none()
         }
         Message::PaneClicked(pane) => {
             application_state.focus = Some(pane);
+            Task::none()
         }
         Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
             application_state.panes.resize(split, ratio);
+            Task::none()
         }
         Message::PaneDragged(pane_grid::DragEvent::Dropped { pane, target }) => {
             application_state.panes.drop(pane, target);
+            Task::none()
         }
-        Message::PaneDragged(_) => {}
+        Message::PaneDragged(_) => Task::none(),
         Message::PaneTogglePin(pane) => {
             if let Some(Pane { is_pinned, .. }) = application_state.panes.get_mut(pane) {
                 *is_pinned = !*is_pinned;
             }
+            Task::none()
         }
-        Message::PaneMaximize(pane) => application_state.panes.maximize(pane),
+        Message::PaneMaximize(pane) => {
+            application_state.panes.maximize(pane);
+            Task::none()
+        }
         Message::PaneRestore => {
             application_state.panes.restore();
+            Task::none()
         }
         Message::PaneClose(pane) => {
             if let Some((_, sibling)) = application_state.panes.close(pane) {
                 application_state.focus = Some(sibling);
             }
+            Task::none()
         }
         Message::PaneCloseFocused => {
             if let Some(pane) = application_state.focus
@@ -333,15 +357,17 @@ pub fn application_update(
             {
                 application_state.focus = Some(sibling);
             }
+            Task::none()
         }
         Message::PaneSetActiveView(interpreter_pane_view_kind, k) => {
             application_state
                 .pane_purposes
                 .insert(k, interpreter_pane_view_kind);
+            Task::none()
         }
         Message::ThemeSelected(theme) => {
             application_state.theme = Some(theme);
+            Task::none()
         }
     }
-    Task::none()
 }
