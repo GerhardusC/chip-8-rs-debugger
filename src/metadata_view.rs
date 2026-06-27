@@ -14,7 +14,6 @@ pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
 }
 
 fn index_register_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    // TODO: Add the ability to configure this with a slider.
     let index_lookahead = app_state.metadata.draw_height;
     let memory_pointed_to = Column::from_iter((0..index_lookahead).map(|i| {
         let y = app_state
