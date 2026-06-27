@@ -18,6 +18,7 @@ mod file_picker_view;
 mod interpreter_pane_view;
 mod interpreter_screen_view;
 mod keypad_view;
+mod main_pane_update;
 mod main_pane_view;
 mod metadata_view;
 mod style;
@@ -64,19 +65,19 @@ impl Default for ApplicationState {
             a: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
                 ratio: 0.60,
-                a: Box::new(Configuration::Pane(Pane::new(0))),
+                a: Box::new(Configuration::Pane(PaneState::new(0))),
                 b: Box::new(Configuration::Split {
                     axis: pane_grid::Axis::Vertical,
                     ratio: 0.75,
-                    a: Box::new(Configuration::Pane(Pane::new(1))),
-                    b: Box::new(Configuration::Pane(Pane::new(2))),
+                    a: Box::new(Configuration::Pane(PaneState::new(1))),
+                    b: Box::new(Configuration::Pane(PaneState::new(2))),
                 }),
             }),
             b: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
                 ratio: 0.70,
-                a: Box::new(Configuration::Pane(Pane::new(3))),
-                b: Box::new(Configuration::Pane(Pane::new(4))),
+                a: Box::new(Configuration::Pane(PaneState::new(3))),
+                b: Box::new(Configuration::Pane(PaneState::new(4))),
             }),
         };
 
@@ -224,7 +225,7 @@ pub struct ApplicationState {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,
     pub is_running: bool,
-    pub panes: pane_grid::State<Pane>,
+    pub panes: pane_grid::State<PaneState>,
     pub panes_created: usize,
     pub focus: Option<pane_grid::Pane>,
     pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,

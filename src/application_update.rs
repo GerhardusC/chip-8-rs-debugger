@@ -10,7 +10,13 @@ use surf::Url;
 
 use crate::{
     ApplicationState, EmulatorKeyEvent, EmulatorKeyboardInputKind, InterpreterPaneViewKind,
-    ProgramPickerSource, SupportedQuirksModes, respond_to_key_event,
+    ProgramPickerSource, SupportedQuirksModes,
+    main_pane_update::{
+        pane_clicked, pane_close, pane_close_focussed, pane_dragged, pane_focus_adjacent,
+        pane_maximize, pane_resized, pane_restore, pane_set_active_view, pane_split,
+        pane_split_focussed, pane_toggle_pin,
+    },
+    respond_to_key_event,
 };
 
 #[derive(Debug, Clone)]
@@ -58,12 +64,12 @@ pub enum Message {
 }
 
 #[derive(Clone, Copy, Default)]
-pub struct Pane {
+pub struct PaneState {
     pub id: usize,
     pub is_pinned: bool,
 }
 
-impl Pane {
+impl PaneState {
     pub fn new(id: usize) -> Self {
         Self {
             id,
@@ -315,96 +321,28 @@ pub fn application_update(
             eprintln!("Failed to read file/directory");
             Task::none()
         }
-        Message::PaneSplit(axis, pane) => {
-            let result = application_state.panes.split(
-                axis,
-                pane,
-                Pane::new(application_state.panes_created),
-            );
-
-            if let Some((pane, _)) = result {
-                application_state.focus = Some(pane);
-            }
-
-            application_state.panes_created += 1;
-            Task::none()
-        }
-        Message::PaneSplitFocused(axis) => {
-            if let Some(pane) = application_state.focus {
-                let result = application_state.panes.split(
-                    axis,
-                    pane,
-                    Pane::new(application_state.panes_created),
-                );
-
-                if let Some((pane, _)) = result {
-                    application_state.focus = Some(pane);
-                }
-
-                application_state.panes_created += 1;
-            }
-            Task::none()
-        }
-        Message::PaneFocusAdjacent(direction) => {
-            if let Some(pane) = application_state.focus
-                && let Some(adjacent) = application_state.panes.adjacent(pane, direction)
-            {
-                application_state.focus = Some(adjacent);
-            }
-            Task::none()
-        }
-        Message::PaneClicked(pane) => {
-            application_state.focus = Some(pane);
-            Task::none()
-        }
-        Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
-            application_state.panes.resize(split, ratio);
-            Task::none()
-        }
-        Message::PaneDragged(pane_grid::DragEvent::Dropped { pane, target }) => {
-            application_state.panes.drop(pane, target);
-            Task::none()
-        }
-        Message::PaneDragged(_) => Task::none(),
-        Message::PaneTogglePin(pane) => {
-            if let Some(Pane { is_pinned, .. }) = application_state.panes.get_mut(pane) {
-                *is_pinned = !*is_pinned;
-            }
-            Task::none()
-        }
-        Message::PaneMaximize(pane) => {
-            application_state.panes.maximize(pane);
-            Task::none()
-        }
-        Message::PaneRestore => {
-            application_state.panes.restore();
-            Task::none()
-        }
-        Message::PaneClose(pane) => {
-            if let Some((_, sibling)) = application_state.panes.close(pane) {
-                application_state.focus = Some(sibling);
-            }
-            Task::none()
-        }
-        Message::PaneCloseFocused => {
-            if let Some(pane) = application_state.focus
-                && let Some(Pane { is_pinned, .. }) = application_state.panes.get(pane)
-                && !is_pinned
-                && let Some((_, sibling)) = application_state.panes.close(pane)
-            {
-                application_state.focus = Some(sibling);
-            }
-            Task::none()
-        }
-        Message::PaneSetActiveView(interpreter_pane_view_kind, k) => {
-            application_state
-                .pane_purposes
-                .insert(k, interpreter_pane_view_kind);
-            Task::none()
-        }
         Message::ThemeSelected(theme) => {
             application_state.theme = Some(theme);
             Task::none()
         }
+        Message::PaneSplit(axis, pane) => pane_split(application_state, axis, pane),
+        Message::PaneSplitFocused(axis) => pane_split_focussed(application_state, axis),
+        Message::PaneFocusAdjacent(direction) => pane_focus_adjacent(application_state, direction),
+        Message::PaneClicked(pane) => pane_clicked(application_state, pane),
+        Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
+            pane_resized(application_state, split, ratio)
+        }
+        Message::PaneDragged(pane_grid::DragEvent::Dropped { pane, target }) => {
+            pane_dragged(application_state, pane, target)
+        }
+        Message::PaneTogglePin(pane) => pane_toggle_pin(application_state, pane),
+        Message::PaneMaximize(pane) => pane_maximize(application_state, pane),
+        Message::PaneRestore => pane_restore(application_state),
+        Message::PaneClose(pane) => pane_close(application_state, pane),
+        Message::PaneCloseFocused => pane_close_focussed(application_state),
+        Message::PaneSetActiveView(interpreter_pane_view_kind, k) => {
+            pane_set_active_view(application_state, interpreter_pane_view_kind, k)
+        }
+        Message::PaneDragged(_) => Task::none(),
     }
 }
