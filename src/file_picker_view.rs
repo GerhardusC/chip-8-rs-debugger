@@ -112,9 +112,6 @@ fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> 
 }
 
 static DEFAULT_GAMES: LazyLock<Vec<Url>> = LazyLock::new(|| {
-    // TODO: Add hi res games
-    // TODO: Fix paths to specific branch
-    // TODO: Display only last part of path
     let Ok(f) = std::fs::File::open("games.txt") else {
         return vec![];
     };
@@ -139,13 +136,13 @@ fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message
     scrollable(
         Column::from_iter(games.map(|url| {
             let url = url.to_owned();
-            let path = url.path().to_owned();
-            let txt = if let Ok(decoded) = urlencoding::decode(&path) {
-                decoded.trim_start_matches("/").to_owned()
-            } else {
-                url.to_string()
-            };
-            let btn = button(text(txt))
+            let game_name = url
+                .path_segments()
+                .and_then(|mut split| split.next_back())
+                .and_then(|s| urlencoding::decode(s).ok().map(|s| s.to_string()))
+                .unwrap_or_else(|| url.to_string());
+
+            let btn = button(text(game_name))
                 .padding(8)
                 .style(button::subtle)
                 .width(Length::Fill);
