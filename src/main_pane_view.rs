@@ -21,42 +21,45 @@ const PANE_HEADER_TEXT_COLOR: Color = Color::from_rgba(
 );
 
 pub fn main_pane(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    let focus = app_state.focus;
+    let focus = app_state.pane_related_data.focus;
 
-    let pane_grid = PaneGrid::new(&app_state.panes, |id, pane, is_maximized| {
-        let is_focused = focus == Some(id);
+    let pane_grid = PaneGrid::new(
+        &app_state.pane_related_data.panes,
+        |id, pane, is_maximized| {
+            let is_focused = focus == Some(id);
 
-        let pin_button = button(text(if pane.is_pinned { "Unpin" } else { "Pin" }).size(14))
-            .on_press(Message::PaneTogglePin(id))
-            .padding(3);
+            let pin_button = button(text(if pane.is_pinned { "Unpin" } else { "Pin" }).size(14))
+                .on_press(Message::PaneTogglePin(id))
+                .padding(3);
 
-        let title = row![
-            pin_button,
-            text(pane.id.to_string()).color(PANE_HEADER_TEXT_COLOR),
-        ]
-        .spacing(5);
+            let title = row![
+                pin_button,
+                text(pane.id.to_string()).color(PANE_HEADER_TEXT_COLOR),
+            ]
+            .spacing(5);
 
-        let title_bar = pane_grid::TitleBar::new(title)
-            .controls(pane_grid::Controls::new(view_panel_controls(
-                app_state,
-                id,
-                pane.is_pinned,
-                is_maximized,
-            )))
-            .padding(5)
-            .style(if is_focused {
-                style::title_bar_focused
-            } else {
-                style::title_bar_active
-            });
-        pane_grid::Content::new(responsive(move |_| interpreter_pane(app_state, pane.id)))
-            .title_bar(title_bar)
-            .style(if is_focused {
-                style::pane_focused
-            } else {
-                style::pane_active
-            })
-    })
+            let title_bar = pane_grid::TitleBar::new(title)
+                .controls(pane_grid::Controls::new(view_panel_controls(
+                    app_state,
+                    id,
+                    pane.is_pinned,
+                    is_maximized,
+                )))
+                .padding(5)
+                .style(if is_focused {
+                    style::title_bar_focused
+                } else {
+                    style::title_bar_active
+                });
+            pane_grid::Content::new(responsive(move |_| interpreter_pane(app_state, pane.id)))
+                .title_bar(title_bar)
+                .style(if is_focused {
+                    style::pane_focused
+                } else {
+                    style::pane_active
+                })
+        },
+    )
     .width(Fill)
     .height(Fill)
     .spacing(5)
@@ -80,7 +83,7 @@ fn view_panel_controls(
             .on_press(message)
     };
 
-    let maximize = if app_state.panes.len() > 1 {
+    let maximize = if app_state.pane_related_data.panes.len() > 1 {
         let (content, message) = if is_maximized {
             ("🗕", Message::PaneRestore)
         } else {
@@ -95,7 +98,7 @@ fn view_panel_controls(
     } else {
         None
     };
-    let pin_button = if app_state.panes.len() > 1 && !is_pinned {
+    let pin_button = if app_state.pane_related_data.panes.len() > 1 && !is_pinned {
         Some(
             button("x", Message::PaneClose(pane))
                 .style(button::danger)
@@ -118,7 +121,7 @@ fn view_panel_controls(
 }
 
 fn interpreter_pane(app_state: &'_ ApplicationState, id: usize) -> Element<'_, Message> {
-    let selected = app_state.pane_purposes.get(&id);
+    let selected = app_state.pane_related_data.pane_purposes.get(&id);
 
     let comp: Option<Element<'_, Message>> = selected.map(|x| match x {
         InterpreterPaneViewKind::ScreenView => interpreter_screen(app_state),

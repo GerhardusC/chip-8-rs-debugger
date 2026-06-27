@@ -98,28 +98,36 @@ impl Default for ApplicationState {
         });
 
         Self {
-            emulator: Default::default(),
-            emulator_state: EmulatorState {
-                program_counter: PC_START,
-                ..Default::default()
+            emulator_related_data: EmulatorRelatedData {
+                emulator: Default::default(),
+                emulator_state: EmulatorState {
+                    program_counter: PC_START,
+                    ..Default::default()
+                },
+                is_running: Default::default(),
+                current_program: vec![],
+                quirks_mode: SupportedQuirksModes::Chip8,
+                execution_speed: 90,
             },
-            is_running: Default::default(),
-            panes,
-            panes_created: num_available_views,
-            focus: None,
-            pane_purposes,
-            current_dir: current_dir.unwrap_or(vec![]),
-            parent_dir: here.parent().map(|p| p.to_path_buf()),
-            current_program: vec![],
-            auto_scroll_pc: true,
-            metadata: Default::default(),
-            breakpoint: None,
-            execution_speed: 90,
+            pane_related_data: PaneRelatedData {
+                panes,
+                panes_created: num_available_views,
+                focus: None,
+                pane_purposes,
+            },
+            file_picker_related_data: FilePickerRelatedData {
+                current_dir: current_dir.unwrap_or(vec![]),
+                parent_dir: here.parent().map(|p| p.to_path_buf()),
+                program_source: ProgramPickerSource::Online,
+                fetching_data: false,
+                program_path: String::new(),
+            },
+            metadata_related_data: Default::default(),
+            control_related_data: ControlRelatedData {
+                breakpoint: None,
+                auto_scroll_pc: true,
+            },
             theme: Some(Theme::Nord),
-            quirks_mode: SupportedQuirksModes::Chip8,
-            program_source: ProgramPickerSource::Online,
-            fetching_data: false,
-            program_path: String::new(),
         }
     }
 }
@@ -128,16 +136,19 @@ impl ApplicationState {
     /// Convert program counter value to index in current program.
     /// Returns none if PC in emulator is out of range
     pub fn get_normalised_pc(&self) -> Option<usize> {
-        if self.emulator_state.program_counter < PC_START || self.current_program.is_empty() {
+        if self.emulator_related_data.emulator_state.program_counter < PC_START
+            || self.emulator_related_data.current_program.is_empty()
+        {
             return None;
         }
-        let normalised_pc = (self.emulator_state.program_counter - PC_START) >> 1;
+        let normalised_pc =
+            (self.emulator_related_data.emulator_state.program_counter - PC_START) >> 1;
         Some(normalised_pc)
     }
 
     pub fn get_instruction_under_pc(&self) -> Option<Instruction> {
         self.get_normalised_pc()
-            .and_then(|x| self.current_program.get(x))
+            .and_then(|x| self.emulator_related_data.current_program.get(x))
             .map(|x| x.to_owned())
     }
 
@@ -173,33 +184,47 @@ impl PaneState {
     }
 }
 
-pub struct ApplicationState {
+pub struct EmulatorRelatedData {
     pub emulator: EmulatorWrapper,
     pub emulator_state: EmulatorState,
     pub is_running: bool,
+    pub current_program: Vec<Instruction>,
+    pub quirks_mode: SupportedQuirksModes,
+    pub execution_speed: u8,
+}
+pub struct PaneRelatedData {
     pub panes: pane_grid::State<PaneState>,
     pub panes_created: usize,
     pub focus: Option<pane_grid::Pane>,
     pub pane_purposes: HashMap<usize, InterpreterPaneViewKind>,
-    pub current_dir: Vec<PathBuf>,
-    pub parent_dir: Option<PathBuf>,
-    pub current_program: Vec<Instruction>,
+}
+
+pub struct ControlRelatedData {
     pub auto_scroll_pc: bool,
-    pub metadata: MetaData,
     pub breakpoint: Option<usize>,
-    pub execution_speed: u8,
-    pub theme: Option<Theme>,
-    pub quirks_mode: SupportedQuirksModes,
-    // TODO: Group similar things together here
+}
+
+pub struct FilePickerRelatedData {
     pub program_source: ProgramPickerSource,
     pub program_path: String,
+    pub current_dir: Vec<PathBuf>,
+    pub parent_dir: Option<PathBuf>,
     pub fetching_data: bool,
 }
 
-pub struct MetaData {
+pub struct MetadataRelatedData {
     pub register_x: Option<usize>,
     pub register_y: Option<usize>,
     pub draw_height: u8,
+}
+
+pub struct ApplicationState {
+    pub emulator_related_data: EmulatorRelatedData,
+    pub pane_related_data: PaneRelatedData,
+    pub control_related_data: ControlRelatedData,
+    pub file_picker_related_data: FilePickerRelatedData,
+    pub metadata_related_data: MetadataRelatedData,
+    pub theme: Option<Theme>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -232,7 +257,7 @@ impl Display for SupportedQuirksModes {
     }
 }
 
-impl Default for MetaData {
+impl Default for MetadataRelatedData {
     fn default() -> Self {
         Self {
             register_x: Default::default(),

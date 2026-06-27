@@ -12,12 +12,13 @@ pub fn application_subs(application_state: &ApplicationState) -> Subscription<Me
 }
 
 fn interpreter_running(application_state: &ApplicationState) -> Subscription<Message> {
-    if application_state.is_running
-        && application_state.get_normalised_pc() != application_state.breakpoint
+    if application_state.emulator_related_data.is_running
+        && application_state.get_normalised_pc()
+            != application_state.control_related_data.breakpoint
     {
         return time::every(Duration::from_millis(
             // The slider goes from (0;100] so have to invert
-            ((101 - application_state.execution_speed) as u64) << 2,
+            ((101 - application_state.emulator_related_data.execution_speed) as u64) << 2,
         ))
         .map(|_| Message::NextInstruction);
     }

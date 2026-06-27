@@ -15,39 +15,52 @@ use crate::{ApplicationState, Message, ProgramPickerSource};
 pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     let program_source_pick_list = pick_list(
         [ProgramPickerSource::Disk, ProgramPickerSource::Online],
-        Some(&app_state.program_source),
+        Some(&app_state.file_picker_related_data.program_source),
         Message::SetProgramPickerSource,
     );
 
-    let (program_picker, on_submit, on_input, label) = match &app_state.program_source {
-        ProgramPickerSource::Disk => {
-            let program_path = PathBuf::from(if app_state.program_path.starts_with("~") {
-                std::env!("HOME").to_owned() + app_state.program_path.trim_start_matches("~")
-            } else {
-                app_state.program_path.to_owned()
-            });
-            (
-                file_program_picker(app_state),
-                if program_path.is_dir() {
-                    Message::EnterDirectory(program_path)
-                } else {
-                    Message::LoadProgram(program_path)
-                },
+    let (program_picker, on_submit, on_input, label) =
+        match &app_state.file_picker_related_data.program_source {
+            ProgramPickerSource::Disk => {
+                let program_path = PathBuf::from(
+                    if app_state
+                        .file_picker_related_data
+                        .program_path
+                        .starts_with("~")
+                    {
+                        std::env!("HOME").to_owned()
+                            + app_state
+                                .file_picker_related_data
+                                .program_path
+                                .trim_start_matches("~")
+                    } else {
+                        app_state.file_picker_related_data.program_path.to_owned()
+                    },
+                );
+                (
+                    file_program_picker(app_state),
+                    if program_path.is_dir() {
+                        Message::EnterDirectory(program_path)
+                    } else {
+                        Message::LoadProgram(program_path)
+                    },
+                    Message::UpdateProgramPath,
+                    "File or Dir",
+                )
+            }
+            ProgramPickerSource::Online => (
+                online_program_picker(app_state),
+                Message::LoadProgramFromOnline(
+                    app_state.file_picker_related_data.program_path.to_owned(),
+                ),
                 Message::UpdateProgramPath,
-                "File or Dir",
-            )
-        }
-        ProgramPickerSource::Online => (
-            online_program_picker(app_state),
-            Message::LoadProgramFromOnline(app_state.program_path.to_owned()),
-            Message::UpdateProgramPath,
-            "URL",
-        ),
-    };
+                "URL",
+            ),
+        };
 
     let submit_btn = button("Go");
-    let input = TextInput::new(label, &app_state.program_path);
-    let (input, submit_btn) = if app_state.fetching_data {
+    let input = TextInput::new(label, &app_state.file_picker_related_data.program_path);
+    let (input, submit_btn) = if app_state.file_picker_related_data.fetching_data {
         (input, submit_btn)
     } else {
         (
@@ -73,16 +86,21 @@ fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> 
             .on_press(message)
     };
 
-    let up_a_dir_button = app_state.parent_dir.as_ref().map(|parent_dir| {
-        Element::from(
-            button(
-                "..".to_owned(),
-                Message::EnterDirectory(parent_dir.to_owned()),
-            )
-            .style(button::secondary),
-        )
-    });
-    let mut files = app_state.current_dir.clone();
+    let up_a_dir_button =
+        app_state
+            .file_picker_related_data
+            .parent_dir
+            .as_ref()
+            .map(|parent_dir| {
+                Element::from(
+                    button(
+                        "..".to_owned(),
+                        Message::EnterDirectory(parent_dir.to_owned()),
+                    )
+                    .style(button::secondary),
+                )
+            });
+    let mut files = app_state.file_picker_related_data.current_dir.clone();
 
     files.sort_by_key(|a| a.is_file());
 
@@ -149,7 +167,7 @@ static DEFAULT_GAMES: LazyLock<Vec<Url>> = LazyLock::new(|| {
 });
 
 fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    let fetching = app_state.fetching_data;
+    let fetching = app_state.file_picker_related_data.fetching_data;
     let games = DEFAULT_GAMES.iter();
     scrollable(
         Column::from_iter(games.map(|url| {

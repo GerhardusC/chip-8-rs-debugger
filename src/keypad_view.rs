@@ -8,6 +8,7 @@ use crate::{ApplicationState, Message};
 fn keypad_btn(app_state: &'_ ApplicationState, value: u8) -> Button<'_, Message> {
     let btn_text = format!("{:X}", value);
     let active = app_state
+        .emulator_related_data
         .emulator
         .0
         .borrow()

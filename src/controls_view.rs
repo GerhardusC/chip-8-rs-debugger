@@ -7,50 +7,55 @@ use crate::{ApplicationState, Message, PC_START, SupportedQuirksModes};
 
 // TODO: See if support for multiple breakpoints is needed
 pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    let instructions_list = column(app_state.current_program.iter().enumerate().map(
-        |(i, instruction)| {
-            // TODO: Nice formatting for instructions
-            // offset.
-            let text = container(
-                text(format!("{}: {:?}", (i * 2) + PC_START, instruction))
-                    .wrapping(text::Wrapping::None),
-            )
-            .width(Length::Fill)
-            .padding(3);
+    let instructions_list = column(
+        app_state
+            .emulator_related_data
+            .current_program
+            .iter()
+            .enumerate()
+            .map(|(i, instruction)| {
+                // TODO: Nice formatting for instructions
+                // offset.
+                let text = container(
+                    text(format!("{}: {:?}", (i * 2) + PC_START, instruction))
+                        .wrapping(text::Wrapping::None),
+                )
+                .width(Length::Fill)
+                .padding(3);
 
-            let container = if let Some(pc) = app_state.get_normalised_pc()
-                && pc == i
-            {
-                text.style(container::secondary)
-            } else {
-                text.style(container::transparent)
-            };
+                let container = if let Some(pc) = app_state.get_normalised_pc()
+                    && pc == i
+                {
+                    text.style(container::secondary)
+                } else {
+                    text.style(container::transparent)
+                };
 
-            let bp_button = button("  ")
-                .padding(3)
-                .on_press(Message::ToggleBreakpoint(i));
-            let bp_button = if let Some(bp) = app_state.breakpoint
-                && bp == i
-            {
-                bp_button.style(button::danger)
-            } else {
-                bp_button.style(button::secondary)
-            };
+                let bp_button = button("  ")
+                    .padding(3)
+                    .on_press(Message::ToggleBreakpoint(i));
+                let bp_button = if let Some(bp) = app_state.control_related_data.breakpoint
+                    && bp == i
+                {
+                    bp_button.style(button::danger)
+                } else {
+                    bp_button.style(button::secondary)
+                };
 
-            row![bp_button, container,].spacing(5).into()
-        },
-    ))
+                row![bp_button, container,].spacing(5).into()
+            }),
+    )
     .spacing(2);
 
     let program_list = scrollable(instructions_list).id(widget::Id::new("program_list"));
 
-    let no_prog_warning = if app_state.current_program.is_empty() {
+    let no_prog_warning = if app_state.emulator_related_data.current_program.is_empty() {
         Some(text("No program loaded").style(text::secondary))
     } else {
         None
     };
 
-    let run_button = if app_state.is_running {
+    let run_button = if app_state.emulator_related_data.is_running {
         button("⏸")
             .on_press(Message::ToggleRunning)
             .style(button::danger)
@@ -60,7 +65,7 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
             .style(button::success)
     };
 
-    let auto_scroll_button = if app_state.auto_scroll_pc {
+    let auto_scroll_button = if app_state.control_related_data.auto_scroll_pc {
         button("Auto Scroll: ON")
             .on_press(Message::ToggleAutoScrollPc)
             .style(button::success)
@@ -74,7 +79,7 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
         text("⏩").style(text::primary),
         container(slider(
             1..=100,
-            app_state.execution_speed,
+            app_state.emulator_related_data.execution_speed,
             Message::SetExecutionSpeed
         ))
     ]
@@ -84,7 +89,7 @@ pub fn controls(app_state: &'_ ApplicationState) -> Element<'_, Message> {
 
     let select_quirks_mode = pick_list(
         [SupportedQuirksModes::Chip8, SupportedQuirksModes::SuperChip],
-        Some(&app_state.quirks_mode),
+        Some(&app_state.emulator_related_data.quirks_mode),
         Message::UpdateQuirksMode,
     );
 

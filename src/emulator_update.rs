@@ -11,9 +11,14 @@ static CHARACTER_MAP: [char; 16] = [
 ];
 
 pub fn next_instruction(application_state: &mut ApplicationState) -> Task<Message> {
-    let emulator_state = application_state.emulator.0.borrow_mut().next();
+    let emulator_state = application_state
+        .emulator_related_data
+        .emulator
+        .0
+        .borrow_mut()
+        .next();
     if let Some(emulator_state) = emulator_state {
-        application_state.emulator_state = emulator_state;
+        application_state.emulator_related_data.emulator_state = emulator_state;
     }
     let instruction = application_state.get_instruction_under_pc();
     let (x, y, h) = if let Some(instruction) = instruction {
@@ -49,13 +54,13 @@ pub fn next_instruction(application_state: &mut ApplicationState) -> Task<Messag
     } else {
         (None, None, None)
     };
-    application_state.metadata.register_x = x;
-    application_state.metadata.register_y = y;
+    application_state.metadata_related_data.register_x = x;
+    application_state.metadata_related_data.register_y = y;
     if let Some(height) = h {
         if height == 0 {
-            application_state.metadata.draw_height = 16;
+            application_state.metadata_related_data.draw_height = 16;
         } else {
-            application_state.metadata.draw_height = height;
+            application_state.metadata_related_data.draw_height = height;
         }
     }
 
@@ -70,10 +75,11 @@ pub fn update_quirks_mode(
         SupportedQuirksModes::Chip8 => QuirksMode::Chip8,
         SupportedQuirksModes::SuperChip => QuirksMode::SuperChip(SuperChipBehaviour::Modern),
     };
-    application_state.quirks_mode = new_mode;
+    application_state.emulator_related_data.quirks_mode = new_mode;
 
     let quirks = chip_eight::QuirksFields::from(quirks_mode);
     application_state
+        .emulator_related_data
         .emulator
         .0
         .borrow_mut()
@@ -85,7 +91,8 @@ pub fn update_quirks_mode(
 }
 
 pub fn toggle_running(application_state: &mut ApplicationState) -> Task<Message> {
-    application_state.is_running = !application_state.is_running;
+    application_state.emulator_related_data.is_running =
+        !application_state.emulator_related_data.is_running;
     Task::none()
 }
 
@@ -93,7 +100,7 @@ pub fn set_execution_speed(
     application_state: &mut ApplicationState,
     new_speed: u8,
 ) -> Task<Message> {
-    application_state.execution_speed = new_speed;
+    application_state.emulator_related_data.execution_speed = new_speed;
     Task::none()
 }
 
@@ -116,6 +123,7 @@ pub fn respond_to_key_event(
     };
 
     if let Some(key) = application_state
+        .emulator_related_data
         .emulator
         .0
         .borrow_mut()
@@ -133,8 +141,8 @@ pub fn respond_to_key_event(
 }
 
 pub fn update_program(application_state: &mut ApplicationState, program: Vec<u8>) -> Task<Message> {
-    application_state.fetching_data = false;
-    application_state.current_program = program
+    application_state.file_picker_related_data.fetching_data = false;
+    application_state.emulator_related_data.current_program = program
         .chunks(2)
         .map(|c| {
             if let (Some(a), Some(b)) = (c.first(), c.get(1)) {
@@ -144,12 +152,19 @@ pub fn update_program(application_state: &mut ApplicationState, program: Vec<u8>
             }
         })
         .collect();
-    if let Err(e) = application_state.emulator.0.borrow_mut().reset(program) {
+    if let Err(e) = application_state
+        .emulator_related_data
+        .emulator
+        .0
+        .borrow_mut()
+        .reset(program)
+    {
         eprintln!("Program too large: {e}");
     };
 
     let quirks = chip_eight::QuirksFields::from(chip_eight::QuirksMode::Chip8);
     application_state
+        .emulator_related_data
         .emulator
         .0
         .borrow_mut()

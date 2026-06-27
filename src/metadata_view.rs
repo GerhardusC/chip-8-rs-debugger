@@ -3,7 +3,7 @@ use iced::{
     widget::{Column, Row, Space, column, container, row, scrollable, text},
 };
 
-use crate::{ApplicationState, Message, MetaData};
+use crate::{ApplicationState, Message, MetadataRelatedData};
 
 pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
     column![
@@ -14,12 +14,19 @@ pub fn metadata(app_state: &'_ ApplicationState) -> Column<'_, Message> {
 }
 
 fn index_register_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    let index_lookahead = app_state.metadata.draw_height;
+    let index_lookahead = app_state.metadata_related_data.draw_height;
     let memory_pointed_to = Column::from_iter((0..index_lookahead).map(|i| {
         let y = app_state
+            .emulator_related_data
             .emulator_state
             .memory
-            .get(app_state.emulator_state.index_register + i as usize)
+            .get(
+                app_state
+                    .emulator_related_data
+                    .emulator_state
+                    .index_register
+                    + i as usize,
+            )
             .copied()
             .unwrap_or(0_u8);
         let current_byte = (0_u8..8).rev().map(|i| {
@@ -38,9 +45,14 @@ fn index_register_view(app_state: &'_ ApplicationState) -> Element<'_, Message> 
             memory_pointed_to,
             column![
                 container(text("Index Register:").style(text::secondary)),
-                container(text(app_state.emulator_state.index_register))
-                    .style(container::bordered_box)
-                    .padding(10)
+                container(text(
+                    app_state
+                        .emulator_related_data
+                        .emulator_state
+                        .index_register
+                ))
+                .style(container::bordered_box)
+                .padding(10)
             ]
             .spacing(5)
             .padding(5),
@@ -57,12 +69,19 @@ fn stack_view(app_state: &'_ ApplicationState) -> Element<'_, Message> {
 
     column![
         heading,
-        Row::from_iter(app_state.emulator_state.stack.iter().map(|x| {
-            container(text(x.to_string()))
-                .style(container::bordered_box)
-                .padding(10)
-                .into()
-        }))
+        Row::from_iter(
+            app_state
+                .emulator_related_data
+                .emulator_state
+                .stack
+                .iter()
+                .map(|x| {
+                    container(text(x.to_string()))
+                        .style(container::bordered_box)
+                        .padding(10)
+                        .into()
+                })
+        )
         .spacing(5),
     ]
     .into()
@@ -79,16 +98,17 @@ fn variable_registers_view(app_state: &'_ ApplicationState) -> Column<'_, Messag
 
     let header = row![heading, key,].spacing(5);
 
-    let MetaData {
+    let MetadataRelatedData {
         register_x: x,
         register_y: y,
         ..
-    } = app_state.metadata;
+    } = app_state.metadata_related_data;
 
     column![
         header,
         Row::from_iter(
             app_state
+                .emulator_related_data
                 .emulator_state
                 .variable_registers
                 .iter()

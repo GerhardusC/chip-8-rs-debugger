@@ -9,7 +9,7 @@ pub fn set_program_picker_source(
     application_state: &mut ApplicationState,
     source: ProgramPickerSource,
 ) -> Task<Message> {
-    application_state.program_source = source;
+    application_state.file_picker_related_data.program_source = source;
     Task::none()
 }
 
@@ -17,7 +17,7 @@ pub fn update_program_path(
     application_state: &mut ApplicationState,
     path: String,
 ) -> Task<Message> {
-    application_state.program_path = path;
+    application_state.file_picker_related_data.program_path = path;
     Task::none()
 }
 
@@ -41,7 +41,7 @@ pub fn load_program_from_online(
     if Url::parse(&url).is_err() {
         return Task::none();
     }
-    application_state.fetching_data = true;
+    application_state.file_picker_related_data.fetching_data = true;
     Task::perform(
         async {
             let res = surf::get(url).await;
@@ -67,7 +67,8 @@ pub fn enter_directory(
     application_state: &mut ApplicationState,
     path_buf: PathBuf,
 ) -> Task<Message> {
-    application_state.parent_dir = path_buf.parent().map(|x| x.to_path_buf());
+    application_state.file_picker_related_data.parent_dir =
+        path_buf.parent().map(|x| x.to_path_buf());
 
     Task::perform(
         async {
@@ -96,12 +97,12 @@ pub fn update_directory_listing(
     application_state: &mut ApplicationState,
     current_dir: Vec<PathBuf>,
 ) -> Task<Message> {
-    application_state.current_dir = current_dir;
+    application_state.file_picker_related_data.current_dir = current_dir;
     Task::none()
 }
 
 pub fn program_fetch_error(application_state: &mut ApplicationState) -> Task<Message> {
-    application_state.fetching_data = false;
+    application_state.file_picker_related_data.fetching_data = false;
     eprintln!("Failed to read file/directory");
     Task::none()
 }

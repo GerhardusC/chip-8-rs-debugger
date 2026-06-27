@@ -10,7 +10,7 @@ pub fn interpreter_screen(app_state: &'_ ApplicationState) -> Element<'_, Messag
         width,
         height,
         ..
-    } = &app_state.emulator_state;
+    } = &app_state.emulator_related_data.emulator_state;
 
     let (top_colour, bottom_colour) = if let Some(theme) = &app_state.theme {
         (

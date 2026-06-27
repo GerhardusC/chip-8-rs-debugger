@@ -16,7 +16,8 @@ pub fn respond_to_user_event(
         iced::Event::Keyboard(keyboard::Event::KeyPressed { key: user_key, .. }) => {
             match user_key {
                 keyboard::Key::Named(key::Named::Space) => {
-                    application_state.is_running = !application_state.is_running;
+                    application_state.emulator_related_data.is_running =
+                        !application_state.emulator_related_data.is_running;
                 }
                 keyboard::Key::Character(c) => {
                     if let Some(c) = c.chars().next() {
