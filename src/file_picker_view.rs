@@ -111,9 +111,24 @@ fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> 
     .into()
 }
 
+static FALLBACK_GAMES: [&str; 9] = [
+    "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/refs/heads/master/roms/rockto.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/1-chip8-logo.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/2-ibm-logo.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/3-corax%2B.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/4-flags.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/5-quirks.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/6-keypad.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/7-beep.ch8",
+    "https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/8-scrolling.ch8",
+];
+
 static DEFAULT_GAMES: LazyLock<Vec<Url>> = LazyLock::new(|| {
     let Ok(f) = std::fs::File::open("games.txt") else {
-        return vec![];
+        return FALLBACK_GAMES
+            .iter()
+            .flat_map(|game| Url::parse(game).ok())
+            .collect();
     };
     let mut reader = BufReader::new(f);
 
@@ -126,6 +141,9 @@ static DEFAULT_GAMES: LazyLock<Vec<Url>> = LazyLock::new(|| {
             paths.push(url);
         }
         current_word.clear();
+    }
+    if paths.is_empty() {
+        paths.extend(FALLBACK_GAMES.iter().flat_map(|game| Url::parse(game).ok()));
     }
     paths
 });
