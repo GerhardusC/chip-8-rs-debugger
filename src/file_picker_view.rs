@@ -1,9 +1,14 @@
-use std::path::PathBuf;
+use std::{
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    sync::LazyLock,
+};
 
 use iced::{
     Element, Length,
     widget::{Column, TextInput, button, column, pick_list, row, scrollable, space, text},
 };
+use surf::Url;
 
 use crate::{ApplicationState, Message, ProgramPickerSource};
 
@@ -106,41 +111,48 @@ fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> 
     .into()
 }
 
-const DEFAULT_GAMES: [(&str, &str); 5] = [
-    (
-        "Snake",
-        "https://johnearnest.github.io/chip8Archive/roms/snake.ch8",
-    ),
-    (
-        "Rockto",
-        "https://johnearnest.github.io/chip8Archive/roms/rockto.ch8",
-    ),
-    (
-        "Tic-Tac-Toe",
-        "https://johnearnest.github.io/chip8Archive/roms/ultimatetictactoe.ch8",
-    ),
-    (
-        "Br8kout",
-        "https://johnearnest.github.io/chip8Archive/roms/br8kout.ch8",
-    ),
-    (
-        "Animal Race",
-        "https://raw.githubusercontent.com/kripod/chip8-roms/refs/heads/master/games/Animal%20Race%20%5BBrian%20Astle%5D.ch8",
-    ),
-];
+static DEFAULT_GAMES: LazyLock<Vec<Url>> = LazyLock::new(|| {
+    // TODO: Add hi res games
+    // TODO: Fix paths to specific branch
+    // TODO: Display only last part of path
+    let Ok(f) = std::fs::File::open("games.txt") else {
+        return vec![];
+    };
+    let mut reader = BufReader::new(f);
+
+    let mut paths = vec![];
+    let mut current_word = String::new();
+    while let Ok(bytes_read) = reader.read_line(&mut current_word)
+        && bytes_read > 0
+    {
+        if let Ok(url) = Url::parse(&current_word) {
+            paths.push(url);
+        }
+        current_word.clear();
+    }
+    paths
+});
 
 fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     let fetching = app_state.fetching_data;
+    let games = DEFAULT_GAMES.iter();
     scrollable(
-        Column::from_iter(DEFAULT_GAMES.map(|(name, url)| {
-            let btn = button(name)
+        Column::from_iter(games.map(|url| {
+            let url = url.to_owned();
+            let path = url.path().to_owned();
+            let txt = if let Ok(decoded) = urlencoding::decode(&path) {
+                decoded.trim_start_matches("/").to_owned()
+            } else {
+                url.to_string()
+            };
+            let btn = button(text(txt))
                 .padding(8)
                 .style(button::subtle)
                 .width(Length::Fill);
             if fetching {
                 btn
             } else {
-                btn.on_press(Message::LoadProgramFromOnline(url.to_owned()))
+                btn.on_press(Message::LoadProgramFromOnline(url.to_string()))
             }
             .into()
         }))
