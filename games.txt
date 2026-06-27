@@ -1,3 +1,11 @@
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/1-chip8-logo.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/2-ibm-logo.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/3-corax%2B.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/4-flags.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/5-quirks.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/6-keypad.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/7-beep.ch8
+https://raw.githubusercontent.com/Timendus/chip8-test-suite/refs/heads/main/bin/8-scrolling.ch8
 https://raw.githubusercontent.com/JohnEarnest/chip8Archive/refs/heads/master/roms/1dcell.ch8
 https://raw.githubusercontent.com/JohnEarnest/chip8Archive/refs/heads/master/roms/8ceattourny_d1.ch8
 https://raw.githubusercontent.com/JohnEarnest/chip8Archive/refs/heads/master/roms/8ceattourny_d2.ch8

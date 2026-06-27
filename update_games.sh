@@ -1,20 +1,31 @@
-echo -e "\e[32mFetching URLS for games from https://github.com/JohnEarnest/chip8Archive/tree/master/roms\e[0m"
-gh api repos/JohnEarnest/chip8Archive/git/trees/master?recursive=1 --jq \
-	'.tree[]
-		| select(.type == "blob") 	
-		| select(.path | startswith("roms/"))
-		| "https://raw.githubusercontent.com/JohnEarnest/chip8Archive/refs/heads/master/\(.path)"' \
-	| xargs -I {} python3 -c "import urllib.parse; print(urllib.parse.quote('{}', safe=':/\\\?=&'))" \
-	| grep \.ch8 \
-	> games.txt
+fetch_urls() {
+	local repo_name=$1
+	local main_branch=$2
 
-echo -e "\e[32mFetching URLS for games and programs from https://github.com/kripod/chip8-roms\e[0m"
-gh api repos/kripod/chip8-roms/git/trees/master?recursive=1 --jq \
-	'.tree[]
-		| select(.type == "blob") 	
-		| select(.path | startswith("games/") or startswith("hires/") or startswith("programs/"))
-		| "https://raw.githubusercontent.com/kripod/chip8-roms/refs/heads/master/\(.path)"' \
-	| xargs -I {} python3 -c "import urllib.parse; print(urllib.parse.quote('{}', safe=':/\\\?=&'))" \
-	| grep \.ch8 \
-	>> games.txt
+	echo -e "\e[32mFetching URLS for games from https://github.com/$repo_name/tree/$main_branch/roms\e[0m" 1>&2
+
+	shift 2
+	
+	local directories=("${@}")
+	local query='.tree[] | select(.type == "blob") | select(.path | '
+
+	local acc=''
+	for pathname in "${directories[@]}"; do
+		if [ -z "$acc" ]; then
+			acc+='startswith("'"$pathname"'/") '
+		else
+			acc+=' or startswith("'"$pathname"'/") '
+		fi
+	done
+	query+="$acc"
+	query+=') | "https://raw.githubusercontent.com/'"$repo_name"'/refs/heads/'"$main_branch"'/\(.path)"'
+
+	gh api repos/$repo_name/git/trees/$main_branch?recursive=1 --jq "$query" \
+		| xargs -I {} python3 -c "import urllib.parse; print(urllib.parse.quote('{}', safe=':/\\\?=&'))" \
+		| grep \.ch8
+}
+
+fetch_urls "Timendus/chip8-test-suite" main bin > games.txt
+fetch_urls "JohnEarnest/chip8Archive" master roms >> games.txt
+fetch_urls "kripod/chip8-roms" master games hires programs >> games.txt
 
