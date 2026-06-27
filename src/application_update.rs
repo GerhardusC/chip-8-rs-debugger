@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use chip_eight::{Instruction, QuirksFields, QuirksMode, SuperChipBehaviour};
 use iced::{Task, Theme, widget::pane_grid};
+use surf::Url;
 
 use crate::{ApplicationState, InterpreterPaneViewKind, ProgramPickerSource, SupportedQuirksModes};
 
@@ -30,6 +31,7 @@ pub enum Message {
     SetExecutionSpeed(u8),
     ThemeSelected(Theme),
     SetProgramPickerSource(ProgramPickerSource),
+    UpdateProgramPath(String),
 
     // PANE CONTROLS
     PaneSplit(pane_grid::Axis, pane_grid::Pane),
@@ -148,6 +150,9 @@ pub fn application_update(
         Message::SetProgramPickerSource(program_picker_source) => {
             application_state.program_source = program_picker_source;
         }
+        Message::UpdateProgramPath(path) => {
+            application_state.program_path = path;
+        }
         Message::LoadProgram(path_buf) => {
             return Task::perform(async { std::fs::read(path_buf) }, |x| {
                 if let Ok(x) = x {
@@ -158,6 +163,9 @@ pub fn application_update(
             });
         }
         Message::LoadProgramFromOnline(url) => {
+            if Url::parse(&url).is_err() {
+                return Task::none();
+            }
             application_state.fetching_data = true;
             return Task::perform(
                 async {

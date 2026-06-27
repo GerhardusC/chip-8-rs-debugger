@@ -116,8 +116,9 @@ impl Default for ApplicationState {
             execution_speed: 90,
             theme: Some(Theme::Nord),
             quirks_mode: SupportedQuirksModes::Chip8,
-            program_source: ProgramPickerSource::Disk,
+            program_source: ProgramPickerSource::Online,
             fetching_data: false,
+            program_path: String::new(),
         }
     }
 }
@@ -186,7 +187,9 @@ pub struct ApplicationState {
     pub execution_speed: u8,
     pub theme: Option<Theme>,
     pub quirks_mode: SupportedQuirksModes,
+    // TODO: Group similar things together here
     pub program_source: ProgramPickerSource,
+    pub program_path: String,
     pub fetching_data: bool,
 }
 

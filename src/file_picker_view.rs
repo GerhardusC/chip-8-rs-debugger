@@ -1,25 +1,63 @@
+use std::path::PathBuf;
+
 use iced::{
     Element, Length,
-    widget::{Column, button, column, pick_list, scrollable, text},
+    widget::{Column, TextInput, button, column, pick_list, row, scrollable, space, text},
 };
 
 use crate::{ApplicationState, Message, ProgramPickerSource};
 
 pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    let pl = pick_list(
+    let program_source_pick_list = pick_list(
         [ProgramPickerSource::Disk, ProgramPickerSource::Online],
         Some(&app_state.program_source),
         Message::SetProgramPickerSource,
     );
-    column![
-        pl,
-        match app_state.program_source {
-            crate::ProgramPickerSource::Disk => file_program_picker(app_state),
-            crate::ProgramPickerSource::Online => online_program_picker(app_state),
+
+    let (program_picker, on_submit, on_input, label) = match &app_state.program_source {
+        ProgramPickerSource::Disk => {
+            let program_path = PathBuf::from(if app_state.program_path.starts_with("~") {
+                std::env!("HOME").to_owned() + app_state.program_path.trim_start_matches("~")
+            } else {
+                app_state.program_path.to_owned()
+            });
+            (
+                file_program_picker(app_state),
+                if program_path.is_dir() {
+                    Message::EnterDirectory(program_path)
+                } else {
+                    Message::LoadProgram(program_path)
+                },
+                Message::UpdateProgramPath,
+                "File or Dir",
+            )
         }
+        ProgramPickerSource::Online => (
+            online_program_picker(app_state),
+            Message::LoadProgramFromOnline(app_state.program_path.to_owned()),
+            Message::UpdateProgramPath,
+            "URL",
+        ),
+    };
+
+    let submit_btn = button("Go");
+    let input = TextInput::new(label, &app_state.program_path);
+    let (input, submit_btn) = if app_state.fetching_data {
+        (input, submit_btn)
+    } else {
+        (
+            input.on_submit(on_submit.clone()).on_input(on_input),
+            submit_btn.on_press(on_submit),
+        )
+    };
+    let top_row = row![
+        program_source_pick_list,
+        space::horizontal(),
+        input,
+        submit_btn
     ]
-    .spacing(5)
-    .into()
+    .spacing(5);
+    column![top_row, program_picker,].spacing(5).into()
 }
 
 fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
@@ -68,7 +106,7 @@ fn file_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> 
     .into()
 }
 
-const PROGRAMS: [(&str, &str); 4] = [
+const DEFAULT_GAMES: [(&str, &str); 5] = [
     (
         "Snake",
         "https://johnearnest.github.io/chip8Archive/roms/snake.ch8",
@@ -85,16 +123,19 @@ const PROGRAMS: [(&str, &str); 4] = [
         "Br8kout",
         "https://johnearnest.github.io/chip8Archive/roms/br8kout.ch8",
     ),
+    (
+        "Animal Race",
+        "https://raw.githubusercontent.com/kripod/chip8-roms/refs/heads/master/games/Animal%20Race%20%5BBrian%20Astle%5D.ch8",
+    ),
 ];
 
 fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
-    // TODO: Also add a text box to add any random url.
     let fetching = app_state.fetching_data;
     scrollable(
-        Column::from_iter(PROGRAMS.map(|(name, url)| {
+        Column::from_iter(DEFAULT_GAMES.map(|(name, url)| {
             let btn = button(name)
                 .padding(8)
-                .style(button::secondary)
+                .style(button::subtle)
                 .width(Length::Fill);
             if fetching {
                 btn
