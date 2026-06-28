@@ -75,7 +75,7 @@ impl Default for ApplicationState {
             }),
             b: Box::new(Configuration::Split {
                 axis: pane_grid::Axis::Horizontal,
-                ratio: 0.70,
+                ratio: 0.60,
                 a: Box::new(Configuration::Pane(PaneState::new(3))),
                 b: Box::new(Configuration::Pane(PaneState::new(4))),
             }),
