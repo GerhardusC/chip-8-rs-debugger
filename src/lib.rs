@@ -117,6 +117,7 @@ impl Default for ApplicationState {
             },
             file_picker_related_data: FilePickerRelatedData {
                 current_dir: current_dir.unwrap_or(vec![]),
+                current_search_term: String::new(),
                 parent_dir: here.parent().map(|p| p.to_path_buf()),
                 program_source: ProgramPickerSource::Online,
                 fetching_data: false,
@@ -207,6 +208,7 @@ pub struct ControlRelatedData {
 pub struct FilePickerRelatedData {
     pub program_source: ProgramPickerSource,
     pub program_path: String,
+    pub current_search_term: String,
     pub current_dir: Vec<PathBuf>,
     pub parent_dir: Option<PathBuf>,
     pub fetching_data: bool,

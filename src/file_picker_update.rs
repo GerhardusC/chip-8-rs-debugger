@@ -106,3 +106,13 @@ pub fn program_fetch_error(application_state: &mut ApplicationState) -> Task<Mes
     eprintln!("Failed to read file/directory");
     Task::none()
 }
+
+pub fn set_current_search_term(
+    application_state: &mut ApplicationState,
+    term: String,
+) -> Task<Message> {
+    application_state
+        .file_picker_related_data
+        .current_search_term = term;
+    Task::none()
+}

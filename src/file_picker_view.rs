@@ -19,7 +19,7 @@ pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
         Message::SetProgramPickerSource,
     );
 
-    let (program_picker, on_submit, on_input, label) =
+    let (program_picker, on_submit, on_input, label, online_game_search_bar) =
         match &app_state.file_picker_related_data.program_source {
             ProgramPickerSource::Disk => {
                 let program_path = PathBuf::from(
@@ -46,6 +46,7 @@ pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
                     },
                     Message::UpdateProgramPath,
                     "File or Dir",
+                    None,
                 )
             }
             ProgramPickerSource::Online => (
@@ -55,10 +56,17 @@ pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
                 ),
                 Message::UpdateProgramPath,
                 "URL",
+                Some(
+                    TextInput::new(
+                        "Search",
+                        &app_state.file_picker_related_data.current_search_term,
+                    )
+                    .on_input(Message::SetCurrentSearchTerm),
+                ),
             ),
         };
 
-    let submit_btn = button("Go");
+    let submit_btn = button("⬇️");
     let input = TextInput::new(label, &app_state.file_picker_related_data.program_path);
     let (input, submit_btn) = if app_state.file_picker_related_data.fetching_data {
         (input, submit_btn)
@@ -70,6 +78,7 @@ pub fn file_picker(app_state: &'_ ApplicationState) -> Element<'_, Message> {
     };
     let top_row = row![
         program_source_pick_list,
+        online_game_search_bar,
         space::horizontal(),
         input,
         submit_btn
@@ -170,25 +179,41 @@ fn online_program_picker(app_state: &'_ ApplicationState) -> Element<'_, Message
     let fetching = app_state.file_picker_related_data.fetching_data;
     let games = DEFAULT_GAMES.iter();
     scrollable(
-        Column::from_iter(games.map(|url| {
-            let url = url.to_owned();
-            let game_name = url
-                .path_segments()
-                .and_then(|mut split| split.next_back())
-                .and_then(|s| urlencoding::decode(s).ok().map(|s| s.to_string()))
-                .unwrap_or_else(|| url.to_string());
+        Column::from_iter(
+            games
+                .filter(|url| {
+                    let game_name = url
+                        .path_segments()
+                        .and_then(|mut split| split.next_back())
+                        .and_then(|s| urlencoding::decode(s).ok().map(|s| s.to_string()))
+                        .unwrap_or_else(|| url.to_string());
+                    game_name.to_lowercase().contains(
+                        &app_state
+                            .file_picker_related_data
+                            .current_search_term
+                            .to_lowercase(),
+                    )
+                })
+                .map(|url| {
+                    let url = url.to_owned();
+                    let game_name = url
+                        .path_segments()
+                        .and_then(|mut split| split.next_back())
+                        .and_then(|s| urlencoding::decode(s).ok().map(|s| s.to_string()))
+                        .unwrap_or_else(|| url.to_string());
 
-            let btn = button(text(game_name))
-                .padding(8)
-                .style(button::subtle)
-                .width(Length::Fill);
-            if fetching {
-                btn
-            } else {
-                btn.on_press(Message::LoadProgramFromOnline(url.to_string()))
-            }
-            .into()
-        }))
+                    let btn = button(text(game_name))
+                        .padding(8)
+                        .style(button::subtle)
+                        .width(Length::Fill);
+                    if fetching {
+                        btn
+                    } else {
+                        btn.on_press(Message::LoadProgramFromOnline(url.to_string()))
+                    }
+                    .into()
+                }),
+        )
         .spacing(5),
     )
     .into()

@@ -12,7 +12,8 @@ use crate::{
     },
     file_picker_update::{
         enter_directory, load_program_from_disk, load_program_from_online, program_fetch_error,
-        set_program_picker_source, update_directory_listing, update_program_path,
+        set_current_search_term, set_program_picker_source, update_directory_listing,
+        update_program_path,
     },
     keyboard_update::respond_to_user_event,
     main_pane_update::{
@@ -24,32 +25,32 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    // COMBINED CONTROLS
-    PaneSetActiveView(InterpreterPaneViewKind, usize),
-
-    // FILE CONTROLS
+    // FILE PICKER VIEW
     LoadProgram(PathBuf),
     EnterDirectory(PathBuf),
     UpdateProgram(Vec<u8>),
     ProgramFetchError,
     UpdateDirectoryListing(Vec<PathBuf>),
     LoadProgramFromOnline(String),
+    SetProgramPickerSource(ProgramPickerSource),
+    UpdateProgramPath(String),
+    SetCurrentSearchTerm(String),
 
     // EMULATOR CONTROLS
     NextInstruction,
     EmulatorKey(u8),
     ToggleRunning,
     UpdateQuirksMode(SupportedQuirksModes),
+    SetExecutionSpeed(u8),
 
-    // AUX
+    // CONTROL VIEW
     ToggleAutoScrollPc,
     ToggleBreakpoint(usize),
-    SetExecutionSpeed(u8),
-    ThemeSelected(Theme),
-    SetProgramPickerSource(ProgramPickerSource),
-    UpdateProgramPath(String),
 
-    // KEYBOARD
+    // THEME
+    ThemeSelected(Theme),
+
+    // USER INPUT
     UserEvent(Event),
 
     // PANE CONTROLS
@@ -64,6 +65,7 @@ pub enum Message {
     PaneRestore,
     PaneClose(pane_grid::Pane),
     PaneCloseFocused,
+    PaneSetActiveView(InterpreterPaneViewKind, usize),
 }
 
 pub fn application_update(
@@ -71,21 +73,7 @@ pub fn application_update(
     message: Message,
 ) -> Task<Message> {
     match message {
-        Message::NextInstruction => next_instruction(application_state),
-        Message::UpdateQuirksMode(new_mode) => update_quirks_mode(application_state, new_mode),
-        Message::ToggleBreakpoint(bp) => toggle_breakpoint(application_state, bp),
-        Message::SetExecutionSpeed(new_speed) => set_execution_speed(application_state, new_speed),
-        Message::ToggleAutoScrollPc => toggle_auto_scroll_to_pc(application_state),
-        Message::ToggleRunning => toggle_running(application_state),
-        Message::EmulatorKey(key) => respond_to_key_event(
-            application_state,
-            EmulatorKeyEvent::Toggle,
-            EmulatorKeyboardInputKind::HexKeyIndex(key),
-        ),
-        Message::UserEvent(event) => respond_to_user_event(application_state, event),
-        Message::SetProgramPickerSource(source) => {
-            set_program_picker_source(application_state, source)
-        }
+        // FILE PICKER VIEW
         Message::UpdateProgramPath(path) => update_program_path(application_state, path),
         Message::LoadProgram(path_buf) => load_program_from_disk(application_state, path_buf),
         Message::LoadProgramFromOnline(url) => load_program_from_online(application_state, url),
@@ -94,11 +82,37 @@ pub fn application_update(
         Message::UpdateDirectoryListing(current_dir) => {
             update_directory_listing(application_state, current_dir)
         }
+        Message::SetProgramPickerSource(source) => {
+            set_program_picker_source(application_state, source)
+        }
+        Message::SetCurrentSearchTerm(term) => set_current_search_term(application_state, term),
         Message::ProgramFetchError => program_fetch_error(application_state),
+
+        // EMULATOR CONTROLS
+        Message::NextInstruction => next_instruction(application_state),
+        Message::ToggleRunning => toggle_running(application_state),
+        Message::UpdateQuirksMode(new_mode) => update_quirks_mode(application_state, new_mode),
+        Message::SetExecutionSpeed(new_speed) => set_execution_speed(application_state, new_speed),
+        Message::EmulatorKey(key) => respond_to_key_event(
+            application_state,
+            EmulatorKeyEvent::Toggle,
+            EmulatorKeyboardInputKind::HexKeyIndex(key),
+        ),
+
+        // CONTROL VIEW
+        Message::ToggleAutoScrollPc => toggle_auto_scroll_to_pc(application_state),
+        Message::ToggleBreakpoint(bp) => toggle_breakpoint(application_state, bp),
+
+        // USER INPUT
+        Message::UserEvent(event) => respond_to_user_event(application_state, event),
+
+        // THEME
         Message::ThemeSelected(theme) => {
             application_state.theme = Some(theme);
             Task::none()
         }
+
+        // PANES
         Message::PaneSplit(axis, pane) => pane_split(application_state, axis, pane),
         Message::PaneSplitFocused(axis) => pane_split_focussed(application_state, axis),
         Message::PaneFocusAdjacent(direction) => pane_focus_adjacent(application_state, direction),
